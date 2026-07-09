@@ -22,7 +22,7 @@ export default function Navbar() {
         <div className="flex justify-between h-16 md:h-20 items-center">
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="w-10 h-10 bg-white/95 rounded-xl flex items-center justify-center shadow-md overflow-hidden group-hover:shadow-lg group-hover:scale-105 transition-all duration-200">
-              <img src="/logo.jpeg" alt="Straightway Couriers" className="w-full h-full object-cover" />
+              <img src="/logo.png" alt="Straightway Couriers" className="w-full h-full object-contain" />
             </div>
             <span className={`font-bold text-lg tracking-tight ${isHome ? 'text-white' : 'text-brand-600'}`}>
               Straightway

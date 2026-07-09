@@ -79,18 +79,18 @@ function CheckShieldIcon({ className }) {
 
 const features = [
   {
-    title: 'Reliable & On-Time',
-    desc: 'Your parcels delivered safely and within the promised time, every time.',
+    title: 'Reliable & On-Time Deliveries',
+    desc: 'We ensure your parcels are delivered safely and within the promised time.',
     icon: <TruckIcon className="w-7 h-7" />
   },
   {
-    title: 'Over 2 Years Experience',
-    desc: 'Trusted by businesses across Colombo through consistent, dependable service.',
+    title: 'Over 2 Years of Experience',
+    desc: 'Trusted by businesses through consistent and dependable service.',
     icon: <CheckShieldIcon className="w-7 h-7" />
   },
   {
     title: 'Affordable Pricing',
-    desc: 'Competitive rates from LKR 350 with no compromise on service quality.',
+    desc: 'Competitive rates with no compromise on service quality.',
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -99,17 +99,17 @@ const features = [
   },
   {
     title: 'Safe & Secure Handling',
-    desc: 'Every parcel handled with care from pickup to delivery.',
+    desc: 'Every parcel is handled with care from pickup to delivery.',
     icon: <PackageIcon className="w-7 h-7" />
   },
   {
-    title: 'Professional Support',
-    desc: 'Responsive, friendly team always ready to assist you.',
+    title: 'Professional Customer Support',
+    desc: 'Our team is responsive, friendly, and always ready to assist.',
     icon: <MapPinIcon className="w-7 h-7" />
   },
   {
-    title: 'Colombo & Greater Coverage',
-    desc: 'Wide delivery coverage across Colombo and Greater Colombo areas.',
+    title: 'Wide Coverage',
+    desc: 'Coverage across Colombo and Greater Colombo to meet your business needs.',
     icon: <RoutePathIcon className="w-7 h-7" />
   },
 ];
@@ -200,14 +200,13 @@ export default function Home() {
                 Priority Courier & Secure Dispatch Services
               </motion.div>
               <motion.h1 variants={fadeUp} className="text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.1] mb-6 tracking-tight">
-                Efficient, Secure &
+                PRIORITY COURIER & SECURE
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-accent-300 to-accent-400">
-                  On-Time Delivery
+                  DISPATCH SERVICES
                 </span>
-                Solutions for Your Business
               </motion.h1>
-              <motion.p variants={fadeUp} className="text-lg md:text-xl text-blue-100/80 mb-8 leading-relaxed max-w-xl">
-                Fast, secure, and affordable courier services across Colombo and Greater Colombo. Trusted by businesses for over 2 years.
+              <motion.p variants={fadeUp} className="text-lg md:text-xl text-blue-100/80 mb-8 leading-relaxed max-w-xl italic">
+                "Efficient, Secure, and On-Time Delivery Solutions for Your Business"
               </motion.p>
               <motion.form variants={fadeUp} onSubmit={handleTrack} className="flex flex-col sm:flex-row gap-3 max-w-lg">
                 <div className="relative flex-1">
@@ -305,7 +304,7 @@ export default function Home() {
               About Company
             </motion.span>
             <motion.h2 variants={fadeUp} className="section-title mb-4">
-              Our Vision & Mission
+              Our Mission & Vision
             </motion.h2>
             <motion.p variants={fadeUp} className="section-subtitle max-w-2xl mx-auto">
               Straightway Couriers is a growing delivery service provider based in Sri Lanka, committed to offering fast, safe, and affordable parcel delivery solutions. We have proudly been serving the market for over 2 years, building trust among individual customers, small businesses, and online sellers.
@@ -320,6 +319,16 @@ export default function Home() {
             className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto"
           >
             <motion.div variants={fadeUp} className="bg-brand-50 rounded-2xl p-8 md:p-10 text-center">
+              <div className="w-16 h-16 bg-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Our Mission</h3>
+              <p className="text-gray-600 leading-relaxed">To deliver parcels quickly, safely, and affordably while ensuring maximum customer satisfaction.</p>
+            </motion.div>
+
+            <motion.div variants={fadeUp} custom={1} className="bg-brand-50 rounded-2xl p-8 md:p-10 text-center">
               <div className="w-16 h-16 bg-brand-500 rounded-2xl flex items-center justify-center mx-auto mb-5">
                 <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -329,16 +338,28 @@ export default function Home() {
               <h3 className="text-xl font-bold text-gray-900 mb-3">Our Vision</h3>
               <p className="text-gray-600 leading-relaxed">To become one of the most trusted courier service providers in Sri Lanka.</p>
             </motion.div>
+          </motion.div>
+        </div>
+      </section>
 
-            <motion.div variants={fadeUp} custom={1} className="bg-brand-50 rounded-2xl p-8 md:p-10 text-center">
-              <div className="w-16 h-16 bg-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Our Mission</h3>
-              <p className="text-gray-600 leading-relaxed">To deliver parcels quickly, safely, and affordably while ensuring maximum customer satisfaction.</p>
-            </motion.div>
+      <section className="py-20 bg-gray-50 relative border-t border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={stagger}
+            className="text-center"
+          >
+            <motion.span variants={fadeUp} className="text-sm font-semibold text-brand-500 uppercase tracking-widest mb-3 block">
+              What We Do
+            </motion.span>
+            <motion.h2 variants={fadeUp} className="section-title mb-6">
+              What We Do?
+            </motion.h2>
+            <motion.p variants={fadeUp} className="text-gray-600 text-lg leading-relaxed max-w-3xl mx-auto">
+              At Straightway Couriers, we provide fast, secure, and reliable courier services for businesses across Colombo and Greater Colombo. We understand the importance of timely deliveries and are committed to ensuring every parcel reaches its destination safely and on schedule.
+            </motion.p>
           </motion.div>
         </div>
       </section>
@@ -395,13 +416,13 @@ export default function Home() {
             className="text-center mb-16"
           >
             <motion.span variants={fadeUp} className="text-sm font-semibold text-brand-500 uppercase tracking-widest mb-3 block">
-              What We Offer
+              Why Choose Us
             </motion.span>
             <motion.h2 variants={fadeUp} className="section-title mb-4">
-              Why Choose Straightway Couriers?
+              Why Businesses Choose Us?
             </motion.h2>
             <motion.p variants={fadeUp} className="section-subtitle">
-              We pride ourselves on speed, reliability, and exceptional service — delivering peace of mind with every package.
+              We are committed to building long-term relationships through reliable service and positive customer experiences.
             </motion.p>
           </motion.div>
 
@@ -438,21 +459,19 @@ export default function Home() {
             viewport={{ once: true }}
             variants={stagger}
           >
-            <motion.div variants={fadeUp} className="text-center mb-12">
-              <span className="text-sm font-semibold text-brand-500 uppercase tracking-widest mb-3 block">Pricing</span>
+            <motion.div variants={fadeUp} className="text-center mb-10">
+              <span className="text-sm font-semibold text-brand-500 uppercase tracking-widest mb-3 block">Price Rates</span>
               <h2 className="section-title mb-4">Our Delivery Rates</h2>
-              <p className="section-subtitle">Simple, transparent pricing for Colombo and Greater Colombo.</p>
+              <p className="text-gray-500 font-medium text-sm tracking-wider">Fast | Safe | Reliable | COD | On Time</p>
             </motion.div>
             <motion.div variants={stagger} className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
               <motion.div variants={fadeUp} className="bg-white rounded-2xl border-2 border-brand-100 p-8 text-center hover:border-brand-300 hover:shadow-lg transition-all duration-300">
                 <p className="text-sm font-semibold text-brand-500 uppercase tracking-wider mb-2">Within Colombo</p>
                 <div className="text-5xl font-black text-gray-900 mb-1">LKR 350</div>
-                <p className="text-gray-500 text-sm">Fast • Safe • Reliable</p>
               </motion.div>
               <motion.div variants={fadeUp} custom={1} className="bg-white rounded-2xl border-2 border-brand-100 p-8 text-center hover:border-brand-300 hover:shadow-lg transition-all duration-300">
                 <p className="text-sm font-semibold text-brand-500 uppercase tracking-wider mb-2">Greater Colombo</p>
                 <div className="text-5xl font-black text-gray-900 mb-1">LKR 400</div>
-                <p className="text-gray-500 text-sm">COD • On Time • Reliable</p>
               </motion.div>
             </motion.div>
           </motion.div>
@@ -482,6 +501,59 @@ export default function Home() {
                   {city}
                 </span>
               ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="py-20 bg-gray-50 relative overflow-hidden">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={stagger}
+          >
+            <motion.div variants={fadeUp} className="text-center mb-12">
+              <span className="text-sm font-semibold text-brand-500 uppercase tracking-widest mb-3 block">Testimonials</span>
+              <h2 className="section-title mb-4">What Do Our Customers Say</h2>
+            </motion.div>
+            <motion.div variants={stagger} className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              <motion.div variants={fadeUp} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">"The reliable, trustworthy and fastest courier service!! Highly recommended and really appreciate your service."</p>
+                <p className="font-semibold text-gray-900 text-sm">— The Flora</p>
+              </motion.div>
+
+              <motion.div variants={fadeUp} custom={1} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">"WE HAD AN EXCELLENT EXPERIENCE WITH @STRAIGHTWAYCOURIERS. THEY ARE RELIABLE, FAST AND OFFER GREAT CUSTOMER SERVICE. WHOLE PROCESS WAS SMOOTH AND STRESS FREE. HIGHLY RECOMMEND!"</p>
+                <p className="font-semibold text-gray-900 text-sm">— INNOCELL</p>
+              </motion.div>
+
+              <motion.div variants={fadeUp} custom={2} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">"Straightway Couriers has consistently demonstrated excellence in logistics and delivery services. Their unwavering commitment to punctuality, precision, and secure handling has ensured our products reach customers in pristine condition and on time."</p>
+                <p className="font-semibold text-gray-900 text-sm">— MasterCare</p>
+              </motion.div>
             </motion.div>
           </motion.div>
         </div>
@@ -530,15 +602,15 @@ export default function Home() {
             <div className="relative">
               <motion.div variants={fadeUp} className="text-center max-w-2xl mx-auto">
                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                  Ready to Ship With Us?
+                  Let's Work Together!
                 </h2>
                 <p className="text-blue-100/80 mb-8 leading-relaxed">
-                  Contact us today for a free quote or to schedule a pickup. We're here to help.
+                  We sincerely appreciate the opportunity to present our courier services. We look forward to partnering with your business and providing fast, reliable, and professional delivery solutions.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link to="/contact" className="btn-accent">
-                    Get a Quote
-                  </Link>
+                  <a href="https://wa.me/94772520636" target="_blank" rel="noopener noreferrer" className="btn-accent">
+                    WhatsApp +94 772520636
+                  </a>
                   <a href="tel:+94772520636" className="btn-outline !border-white/30 !text-white hover:!bg-white/10">
                     Call +94 77 252 0636
                   </a>
@@ -548,7 +620,7 @@ export default function Home() {
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                     </svg>
-                    @_straightway_couriers_
+                    _.straightway_couriers._
                   </a>
                 </div>
               </motion.div>
