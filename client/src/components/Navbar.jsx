@@ -21,8 +21,8 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 md:h-20 items-center">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 bg-white/95 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-200">
-              <span className="text-brand-600 font-extrabold text-xl">S</span>
+            <div className="w-10 h-10 bg-white/95 rounded-xl flex items-center justify-center shadow-md overflow-hidden group-hover:shadow-lg group-hover:scale-105 transition-all duration-200">
+              <img src="/logo.jpeg" alt="Straightway Couriers" className="w-full h-full object-cover" />
             </div>
             <span className={`font-bold text-lg tracking-tight ${isHome ? 'text-white' : 'text-brand-600'}`}>
               Straightway
