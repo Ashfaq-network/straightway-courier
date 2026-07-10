@@ -1,27 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const API = '/api/admin';
 
 const defaultForm = {
-  sender_name: '', sender_phone: '', sender_email: '', receiver_name: '', receiver_phone: '', receiver_email: '',
-  origin: '', destination: '', weight: '', status: 'pending', estimated_delivery: '', notes: ''
+  sender_name: '', sender_phone: '', sender_email: '', sender_address: '',
+  receiver_name: '', receiver_phone: '', receiver_email: '', receiver_address: '',
+  origin: '', destination: '', parcel_type: 'document', parcel_description: '',
+  num_items: 1, weight: '', delivery_type: 'standard',
+  cod_amount: 0, delivery_charge: 0, payment_status: 'pending',
+  special_instructions: '', tracking_number: '',
+  status: 'pending', estimated_delivery: '', notes: '',
+  assigned_pickup_staff_id: '', assigned_delivery_staff_id: '',
 };
 
 export default function ShipmentForm({ shipment, onDone, onCancel }) {
   const [form, setForm] = useState(shipment || defaultForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [staffList, setStaffList] = useState([]);
 
   const isEdit = !!shipment;
+
+  useEffect(() => {
+    fetch(`${API}/staff`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('swc_token')}` }
+    }).then(res => res.ok && res.json()).then(data => data && setStaffList(data)).catch(() => {});
+  }, []);
+
+  const generateTracking = () => {
+    const num = Math.floor(100000 + Math.random() * 900000);
+    const tn = `SWC-${num}`;
+    setForm({ ...form, tracking_number: tn });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    const url = isEdit
-      ? `${API}/shipments/${shipment.id}`
-      : `${API}/shipments`;
+    const url = isEdit ? `${API}/shipments/${shipment.id}` : `${API}/shipments`;
 
     try {
       const res = await fetch(url, {
@@ -47,11 +64,12 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
   };
 
   const handleChange = (field) => (e) => {
-    setForm({ ...form, [field]: e.target.value });
+    const val = e.target.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value;
+    setForm({ ...form, [field]: val });
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-gray-900">
           {isEdit ? 'Edit Shipment' : 'New Shipment'}
@@ -65,74 +83,221 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Tracking Number */}
+        {!isEdit && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sender Name *</label>
-            <input type="text" required value={form.sender_name} onChange={handleChange('sender_name')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tracking Number</label>
+            <div className="flex gap-2">
+              <input type="text" value={form.tracking_number} onChange={handleChange('tracking_number')}
+                placeholder="Auto-generated or enter manually"
+                className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              <button type="button" onClick={generateTracking}
+                className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium">
+                Generate
+              </button>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sender Phone</label>
-            <input type="text" value={form.sender_phone} onChange={handleChange('sender_phone')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sender Email</label>
-            <input type="email" value={form.sender_email} onChange={handleChange('sender_email')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Receiver Name *</label>
-            <input type="text" required value={form.receiver_name} onChange={handleChange('receiver_name')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Receiver Phone</label>
-            <input type="text" value={form.receiver_phone} onChange={handleChange('receiver_phone')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Receiver Email</label>
-            <input type="email" value={form.receiver_email} onChange={handleChange('receiver_email')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Origin *</label>
-            <input type="text" required value={form.origin} onChange={handleChange('origin')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Destination *</label>
-            <input type="text" required value={form.destination} onChange={handleChange('destination')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
-            <input type="text" placeholder="e.g. 2kg" value={form.weight} onChange={handleChange('weight')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select value={form.status} onChange={handleChange('status')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
-              <option value="pending">Pending</option>
-              <option value="in_transit">In Transit</option>
-              <option value="out_for_delivery">Out for Delivery</option>
-              <option value="delivered">Delivered</option>
-              <option value="exception">Exception</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Delivery</label>
-            <input type="date" value={form.estimated_delivery} onChange={handleChange('estimated_delivery')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        )}
+
+        {/* Sender Information */}
+        <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+          <h3 className="font-semibold text-gray-900 mb-4 text-sm uppercase tracking-wider">Sender Information</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sender Name *</label>
+              <input type="text" required value={form.sender_name} onChange={handleChange('sender_name')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sender Phone *</label>
+              <input type="text" required value={form.sender_phone} onChange={handleChange('sender_phone')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sender Email</label>
+              <input type="email" value={form.sender_email} onChange={handleChange('sender_email')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sender Address</label>
+              <input type="text" value={form.sender_address} onChange={handleChange('sender_address')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-          <textarea rows={2} value={form.notes} onChange={handleChange('notes')}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+
+        {/* Receiver Information */}
+        <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+          <h3 className="font-semibold text-gray-900 mb-4 text-sm uppercase tracking-wider">Receiver Information</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Receiver Name *</label>
+              <input type="text" required value={form.receiver_name} onChange={handleChange('receiver_name')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Receiver Phone *</label>
+              <input type="text" required value={form.receiver_phone} onChange={handleChange('receiver_phone')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Receiver Email</label>
+              <input type="email" value={form.receiver_email} onChange={handleChange('receiver_email')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Receiver Address</label>
+              <input type="text" value={form.receiver_address} onChange={handleChange('receiver_address')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Route */}
+        <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+          <h3 className="font-semibold text-gray-900 mb-4 text-sm uppercase tracking-wider">Route</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Origin *</label>
+              <input type="text" required value={form.origin} onChange={handleChange('origin')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Destination *</label>
+              <input type="text" required value={form.destination} onChange={handleChange('destination')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Parcel Details */}
+        <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+          <h3 className="font-semibold text-gray-900 mb-4 text-sm uppercase tracking-wider">Parcel Details</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Parcel Type</label>
+              <select value={form.parcel_type} onChange={handleChange('parcel_type')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="document">Document</option>
+                <option value="package">Package</option>
+                <option value="fragile">Fragile</option>
+                <option value="electronics">Electronics</option>
+                <option value="food">Food/Perishable</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Number of Items</label>
+              <input type="number" min="1" value={form.num_items} onChange={handleChange('num_items')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
+              <input type="text" placeholder="e.g. 2 kg" value={form.weight} onChange={handleChange('weight')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Parcel Description</label>
+              <input type="text" placeholder="Describe the contents" value={form.parcel_description} onChange={handleChange('parcel_description')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Type</label>
+              <select value={form.delivery_type} onChange={handleChange('delivery_type')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="standard">Standard</option>
+                <option value="express">Express</option>
+                <option value="same_day">Same Day</option>
+                <option value="international">International</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Financial */}
+        <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+          <h3 className="font-semibold text-gray-900 mb-4 text-sm uppercase tracking-wider">Financial</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Charge (LKR)</label>
+              <input type="number" step="0.01" value={form.delivery_charge} onChange={handleChange('delivery_charge')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">COD Amount (LKR)</label>
+              <input type="number" step="0.01" value={form.cod_amount} onChange={handleChange('cod_amount')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+              <select value={form.payment_status} onChange={handleChange('payment_status')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+                <option value="cod">Cash on Delivery</option>
+                <option value="partial">Partial</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Assignment */}
+        <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+          <h3 className="font-semibold text-gray-900 mb-4 text-sm uppercase tracking-wider">Staff Assignment</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Staff</label>
+              <select value={form.assigned_pickup_staff_id} onChange={handleChange('assigned_pickup_staff_id')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="">Not assigned</option>
+                {staffList.map(staff => (
+                  <option key={staff.id} value={staff.id}>{staff.name} ({staff.phone})</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Staff</label>
+              <select value={form.assigned_delivery_staff_id} onChange={handleChange('assigned_delivery_staff_id')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="">Not assigned</option>
+                {staffList.map(staff => (
+                  <option key={staff.id} value={staff.id}>{staff.name} ({staff.phone})</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Additional */}
+        <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+          <h3 className="font-semibold text-gray-900 mb-4 text-sm uppercase tracking-wider">Additional</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Delivery</label>
+              <input type="date" value={form.estimated_delivery} onChange={handleChange('estimated_delivery')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select value={form.status} onChange={handleChange('status')}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                {['pending','picked_up','at_warehouse','sorted','out_for_delivery','customer_contacted','delivered','returned','rescheduled','failed'].map(st => (
+                  <option key={st} value={st}>{st.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Special Instructions</label>
+            <textarea rows={2} value={form.special_instructions} onChange={handleChange('special_instructions')}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Internal Notes</label>
+            <textarea rows={2} value={form.notes} onChange={handleChange('notes')}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          </div>
         </div>
 
         <div className="flex gap-3 pt-2">

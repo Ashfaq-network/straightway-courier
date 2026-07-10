@@ -1,9 +1,16 @@
-const statusConfig = {
-  pending: { color: 'bg-amber-400', ring: 'ring-amber-200', icon: '📋', label: 'Pending' },
-  in_transit: { color: 'bg-blue-500', ring: 'ring-blue-200', icon: '🚚', label: 'In Transit' },
-  out_for_delivery: { color: 'bg-indigo-500', ring: 'ring-indigo-200', icon: '📦', label: 'Out for Delivery' },
-  delivered: { color: 'bg-emerald-500', ring: 'ring-emerald-200', icon: '✅', label: 'Delivered' },
-  exception: { color: 'bg-red-500', ring: 'ring-red-200', icon: '⚠️', label: 'Exception' },
+const eventConfig = {
+  order_created: { color: 'bg-blue-500', ring: 'ring-blue-200', icon: '📋', label: 'Order Created' },
+  picked_up: { color: 'bg-amber-500', ring: 'ring-amber-200', icon: '📦', label: 'Parcel Picked Up' },
+  at_warehouse: { color: 'bg-purple-500', ring: 'ring-purple-200', icon: '🏢', label: 'Arrived at Warehouse' },
+  sorted: { color: 'bg-indigo-500', ring: 'ring-indigo-200', icon: '📑', label: 'Parcel Sorted' },
+  out_for_delivery: { color: 'bg-orange-500', ring: 'ring-orange-200', icon: '🚚', label: 'Out for Delivery' },
+  customer_contacted: { color: 'bg-teal-500', ring: 'ring-teal-200', icon: '📞', label: 'Customer Contacted' },
+  delivered: { color: 'bg-emerald-500', ring: 'ring-emerald-200', icon: '✅', label: 'Delivered Successfully' },
+  returned: { color: 'bg-red-500', ring: 'ring-red-200', icon: '↩️', label: 'Returned' },
+  rescheduled: { color: 'bg-cyan-500', ring: 'ring-cyan-200', icon: '📅', label: 'Delivery Rescheduled' },
+  failed: { color: 'bg-red-500', ring: 'ring-red-200', icon: '❌', label: 'Delivery Failed' },
+  delivery_attempt: { color: 'bg-yellow-500', ring: 'ring-yellow-200', icon: '🔄', label: 'Delivery Attempt' },
+  storage_charges: { color: 'bg-rose-500', ring: 'ring-rose-200', icon: '💰', label: 'Storage Charges May Apply' },
 };
 
 export default function TrackingTimeline({ events }) {
@@ -16,13 +23,13 @@ export default function TrackingTimeline({ events }) {
       <div className="absolute left-[17px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-brand-500 to-gray-200 rounded-full" />
 
       {events.map((event, i) => {
-        const cfg = statusConfig[event.status] || { color: 'bg-gray-400', ring: 'ring-gray-200', icon: '📦', label: event.status };
+        const cfg = eventConfig[event.event_type] || { color: 'bg-gray-400', ring: 'ring-gray-200', icon: '📦', label: event.status || event.event_type };
 
         return (
           <div key={event.id} className="flex gap-4 pb-7 relative">
             <div className="flex flex-col items-center flex-shrink-0">
               <div className={`w-[34px] h-[34px] rounded-full ${cfg.color} ring-4 ${cfg.ring} flex items-center justify-center text-xs z-10 shadow-sm`}>
-                <span className="text-white leading-none">{event.icon}</span>
+                <span className="text-white leading-none">{cfg.icon}</span>
               </div>
             </div>
 
@@ -44,6 +51,9 @@ export default function TrackingTimeline({ events }) {
               )}
               {event.description && (
                 <p className="text-sm text-gray-500 mt-0.5">{event.description}</p>
+              )}
+              {event.staff_name && (
+                <p className="text-xs text-gray-400 mt-0.5">By: {event.staff_name}</p>
               )}
               <p className="text-xs text-gray-400 mt-1.5">
                 {new Date(event.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}

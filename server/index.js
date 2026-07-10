@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import { initDB } from './db.js';
 import trackingRoutes from './routes/tracking.js';
 import adminRoutes from './routes/admin.js';
+import staffRoutes from './routes/staff.js';
+import contactRoutes from './routes/contact.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -15,6 +17,8 @@ app.use(express.json());
 
 app.use('/api/track', trackingRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/staff', staffRoutes);
+app.use('/api/contact', contactRoutes);
 
 if (process.env.VERCEL !== '1') {
   initDB().catch(err => console.error('DB init failed:', err));

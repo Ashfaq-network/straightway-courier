@@ -7,13 +7,13 @@ const links = [
   { to: '/track', label: 'Track' },
   { to: '/services', label: 'Services' },
   { to: '/about', label: 'About' },
+  { to: '/faqs', label: 'FAQs' },
   { to: '/contact', label: 'Contact' },
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
-
   const isHome = location.pathname === '/';
 
   return (
@@ -50,6 +50,10 @@ export default function Navbar() {
                 )}
               </Link>
             ))}
+            <a href="https://wa.me/94772520636" target="_blank" rel="noopener noreferrer"
+              className="px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-lg hover:bg-green-600 transition-colors">
+              WhatsApp
+            </a>
           </div>
 
           <button
@@ -78,25 +82,21 @@ export default function Navbar() {
             className="md:hidden bg-white border-t border-gray-100 shadow-lg overflow-hidden"
           >
             {links.map((link, i) => (
-              <motion.div
-                key={link.to}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <Link
-                  to={link.to}
-                  onClick={() => setOpen(false)}
+              <motion.div key={link.to} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
+                <Link to={link.to} onClick={() => setOpen(false)}
                   className={`block px-6 py-3.5 text-sm font-medium border-l-2 transition-all ${
                     location.pathname === link.to
                       ? 'text-brand-500 bg-brand-50 border-brand-500'
                       : 'text-gray-600 hover:bg-gray-50 border-transparent'
-                  }`}
-                >
+                  }`}>
                   {link.label}
                 </Link>
               </motion.div>
             ))}
+            <a href="https://wa.me/94772520636" target="_blank" rel="noopener noreferrer"
+              className="block px-6 py-3.5 text-sm font-medium text-green-600 bg-green-50 border-l-2 border-green-500">
+              WhatsApp
+            </a>
           </motion.div>
         )}
       </AnimatePresence>
