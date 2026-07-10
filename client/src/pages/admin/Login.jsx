@@ -44,31 +44,31 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 pt-20 pb-8">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sm:p-8">
-          <div className="text-center mb-6">
-            <div className="w-12 h-12 bg-brand-500 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <span className="text-white font-bold text-xl">S</span>
+    <div className="h-dvh flex items-center justify-center px-4" style={{ paddingTop: '4rem' }}>
+      <div className="w-full max-w-sm">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+          <div className="text-center mb-5">
+            <div className="w-10 h-10 bg-brand-500 rounded-xl flex items-center justify-center mx-auto mb-2">
+              <span className="text-white font-bold text-lg">S</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Admin Login</h1>
-            <p className="text-sm text-gray-500">Straightway Couriers</p>
+            <h1 className="text-xl font-bold text-gray-900">Admin Login</h1>
+            <p className="text-xs text-gray-500">Straightway Couriers</p>
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 mb-3">
+              <p className="text-red-700 text-xs">{error}</p>
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-3">
             <input
               type="text"
               placeholder="Username"
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
             <input
               type="password"
@@ -76,12 +76,12 @@ export default function AdminLogin() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-6 py-3 bg-brand-500 text-white font-semibold rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
+              className="w-full py-2.5 text-sm bg-brand-500 text-white font-semibold rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
             >
               {loading ? 'Logging in...' : 'Login'}
             </button>
