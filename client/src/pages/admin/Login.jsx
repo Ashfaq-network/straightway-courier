@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
 
 const API = '/api/admin';
 
@@ -9,12 +9,20 @@ export default function AdminLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [checkingToken, setCheckingToken] = useState(true);
+  const [hasToken, setHasToken] = useState(false);
 
-  let hasToken = false;
-  try { hasToken = !!localStorage.getItem('swc_token'); } catch(e) {}
+  useEffect(() => {
+    try {
+      setHasToken(!!localStorage.getItem('swc_token'));
+    } catch(e) {}
+    setCheckingToken(false);
+  }, []);
+
+  if (checkingToken) return null;
+
   if (hasToken) {
-    navigate('/admin/dashboard', { replace: true });
-    return null;
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
   const handleLogin = async (e) => {
@@ -45,7 +53,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="flex items-center justify-center px-4 py-16">
+    <div className="flex items-center justify-center px-4 py-16" style={{minHeight: '60vh'}}>
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
           <div className="text-center mb-5">
