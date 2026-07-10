@@ -1,4 +1,3 @@
-import serverless from 'serverless-http';
 import express from 'express';
 import cors from 'cors';
 import { initDB } from '../server/db.js';
@@ -35,4 +34,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-export const handler = serverless(app);
+export default app;
