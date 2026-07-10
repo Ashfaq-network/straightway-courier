@@ -235,7 +235,7 @@ export default function AdminDashboard() {
       fetchActivityLogs();
     }
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
         <button onClick={() => setShowActivity(false)} className="text-brand-500 hover:underline text-sm mb-4 inline-block">&larr; Back</button>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Activity Log</h2>
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
@@ -272,7 +272,7 @@ export default function AdminDashboard() {
 
   if (viewEvents) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
         <button onClick={() => setViewEvents(null)} className="text-brand-500 hover:underline text-sm mb-4 inline-block">&larr; Back to Dashboard</button>
         <h2 className="text-xl font-bold text-gray-900 mb-1">{viewEvents.tracking_number}</h2>
         <p className="text-gray-500 text-sm mb-2">{viewEvents.receiver_name} &mdash; {viewEvents.destination}</p>
@@ -389,7 +389,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
