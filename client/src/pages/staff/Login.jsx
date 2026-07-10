@@ -44,9 +44,9 @@ export default function StaffLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 pt-24">
+    <div className="min-h-screen flex items-center justify-center px-4 pt-20 pb-8">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sm:p-8">
           <div className="text-center mb-6">
             <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center mx-auto mb-3">
               <span className="text-white font-bold text-xl">S</span>
