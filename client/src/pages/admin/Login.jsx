@@ -44,7 +44,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="h-dvh flex items-center justify-center px-4" style={{ paddingTop: '4rem' }}>
+    <div className="flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
           <div className="text-center mb-5">
