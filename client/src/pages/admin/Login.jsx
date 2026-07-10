@@ -10,8 +10,9 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const token = localStorage.getItem('swc_token');
-  if (token) {
+  let hasToken = false;
+  try { hasToken = !!localStorage.getItem('swc_token'); } catch(e) {}
+  if (hasToken) {
     navigate('/admin/dashboard', { replace: true });
     return null;
   }
