@@ -23,7 +23,7 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
 
   useEffect(() => {
     fetch(`${API}/staff`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('swc_token')}` }
+      headers: { 'Authorization': `Bearer ${sessionStorage.getItem('swc_token')}` }
     }).then(res => res.ok && res.json()).then(data => data && setStaffList(data)).catch(() => {});
   }, []);
 
@@ -45,7 +45,7 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
         method: isEdit ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('swc_token')}`
+          'Authorization': `Bearer ${sessionStorage.getItem('swc_token')}`
         },
         body: JSON.stringify(form)
       });

@@ -14,7 +14,7 @@ export default function StaffLogin() {
 
   useEffect(() => {
     try {
-      setHasToken(!!localStorage.getItem('staff_token'));
+      setHasToken(!!sessionStorage.getItem('staff_token'));
     } catch(e) {}
     setCheckingToken(false);
   }, []);
@@ -43,7 +43,7 @@ export default function StaffLogin() {
       }
 
       const data = await res.json();
-      localStorage.setItem('staff_token', data.token);
+      sessionStorage.setItem('staff_token', data.token);
       navigate('/staff/dashboard');
     } catch (err) {
       setError(err.message);

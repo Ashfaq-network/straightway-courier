@@ -20,7 +20,7 @@ export default function StaffDashboard() {
     fetchShipments();
   }, []);
 
-  const getToken = () => localStorage.getItem('staff_token');
+  const getToken = () => sessionStorage.getItem('staff_token');
 
   const fetchProfile = async () => {
     try {
@@ -37,7 +37,7 @@ export default function StaffDashboard() {
         headers: { 'Authorization': `Bearer ${getToken()}` }
       });
       if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem('staff_token');
+        sessionStorage.removeItem('staff_token');
         navigate('/staff');
         return;
       }
@@ -74,7 +74,7 @@ export default function StaffDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('staff_token');
+    sessionStorage.removeItem('staff_token');
     navigate('/staff');
   };
 

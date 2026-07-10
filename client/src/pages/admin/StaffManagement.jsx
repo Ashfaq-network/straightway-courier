@@ -11,7 +11,7 @@ export default function StaffManagement({ onBack }) {
 
   useEffect(() => { fetchStaff(); }, []);
 
-  const getToken = () => localStorage.getItem('swc_token');
+  const getToken = () => sessionStorage.getItem('swc_token');
 
   const fetchStaff = async () => {
     try {

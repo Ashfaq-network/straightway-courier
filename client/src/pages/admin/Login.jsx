@@ -14,7 +14,7 @@ export default function AdminLogin() {
 
   useEffect(() => {
     try {
-      setHasToken(!!localStorage.getItem('swc_token'));
+      setHasToken(!!sessionStorage.getItem('swc_token'));
     } catch(e) {}
     setCheckingToken(false);
   }, []);
@@ -43,7 +43,7 @@ export default function AdminLogin() {
       }
 
       const data = await res.json();
-      localStorage.setItem('swc_token', data.token);
+      sessionStorage.setItem('swc_token', data.token);
       navigate('/admin/dashboard');
     } catch (err) {
       setError(err.message);

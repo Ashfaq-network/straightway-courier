@@ -30,7 +30,7 @@ export default function AdminDashboard() {
     fetchStats();
   }, []);
 
-  const getToken = () => localStorage.getItem('swc_token');
+  const getToken = () => sessionStorage.getItem('swc_token');
 
   const fetchStats = async () => {
     try {
@@ -50,7 +50,7 @@ export default function AdminDashboard() {
         headers: { 'Authorization': `Bearer ${getToken()}` }
       });
       if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem('swc_token');
+        sessionStorage.removeItem('swc_token');
         navigate('/admin');
         return;
       }
@@ -201,7 +201,7 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('swc_token');
+    sessionStorage.removeItem('swc_token');
     navigate('/admin');
   };
 
