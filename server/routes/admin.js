@@ -11,6 +11,13 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-me';
 // ─── Auth ───────────────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
   try {
+    // Auto-create default admin if no admin exists
+    const count = await query('SELECT COUNT(*) FROM admins');
+    if (parseInt(count.rows[0].count) === 0) {
+      const hash = await bcrypt.hash('admin123', 10);
+      await query('INSERT INTO admins (username, password_hash) VALUES ($1, $2)', ['admin', hash]);
+    }
+
     const { username, password } = req.body;
     const result = await query('SELECT * FROM admins WHERE username = $1', [username]);
     const admin = result.rows[0];
@@ -26,22 +33,6 @@ router.post('/login', async (req, res) => {
 
 // All routes below require admin auth
 router.use(requireAdmin);
-
-// ─── Stats ──────────────────────────────────────────────────────────
-router.get('/stats', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    const result = await query('SELECT * FROM admins WHERE username = $1', [username]);
-    const admin = result.rows[0];
-    if (!admin || !(await bcrypt.compare(password, admin.password_hash))) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    const token = jwt.sign({ id: admin.id, username: admin.username, role: admin.role || 'admin' }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: admin.id, username: admin.username, role: admin.role } });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // ─── Stats ──────────────────────────────────────────────────────────
 router.get('/stats', async (req, res) => {

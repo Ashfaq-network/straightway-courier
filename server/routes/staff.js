@@ -10,6 +10,16 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-me';
 // ─── Login ──────────────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
   try {
+    // Auto-create default staff if none exists
+    const count = await query('SELECT COUNT(*) FROM delivery_staff');
+    if (parseInt(count.rows[0].count) === 0) {
+      const hash = await bcrypt.hash('staff123', 10);
+      await query(
+        'INSERT INTO delivery_staff (name, phone, email, username, password_hash) VALUES ($1, $2, $3, $4, $5)',
+        ['Kumar Sangakkara', '+94 77 123 4567', 'kumar@straightway.lk', 'staff1', hash]
+      );
+    }
+
     const { username, password } = req.body;
     const result = await query('SELECT * FROM delivery_staff WHERE username = $1 AND is_active = true', [username]);
     const staff = result.rows[0];
