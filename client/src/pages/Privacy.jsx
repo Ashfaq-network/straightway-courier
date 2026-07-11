@@ -85,7 +85,7 @@ export default function Privacy() {
             <h2 className="text-lg font-bold text-gray-900 mb-3">10. Contact Us</h2>
             <p>If you have any questions about this privacy policy or our data practices, please contact us at:</p>
             <p className="mt-2">
-              Email: info@straightwaycouriers.com<br />
+              Email: straightwaycouriers@gmail.com<br />
               Phone: +94 77 252 0636<br />
               Address: Colombo, Sri Lanka
             </p>

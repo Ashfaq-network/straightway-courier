@@ -102,7 +102,7 @@ export function sendTrackingEmail(shipment) {
   const tpl = templates[shipment.status] || defaultTemplate;
 
   return transporter.sendMail({
-    from: process.env.SMTP_FROM || '"Straightway Couriers" <noreply@straightwaycouriers.com>',
+    from: process.env.SMTP_FROM || '"Straightway Couriers" <straightwaycouriers@gmail.com>',
     to: receiver_email,
     subject: tpl.subject(tracking_number),
     html: buildEmailHtml({

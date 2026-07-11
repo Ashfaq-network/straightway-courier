@@ -129,7 +129,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900">Email</p>
-                    <a href="mailto:info@straightwaycouriers.com" className="text-sm text-brand-500 hover:underline break-all">info@straightwaycouriers.com</a>
+                    <a href="mailto:straightwaycouriers@gmail.com" className="text-sm text-brand-500 hover:underline break-all">straightwaycouriers@gmail.com</a>
                   </div>
                 </div>
                 <div className="flex items-start gap-3.5">

@@ -63,7 +63,7 @@ export default function Terms() {
 
           <section>
             <h2 className="text-lg font-bold text-gray-900 mb-3">11. Contact</h2>
-            <p>For questions about these terms, please contact us at info@straightwaycouriers.com or call +94 77 252 0636.</p>
+            <p>For questions about these terms, please contact us at straightwaycouriers@gmail.com or call +94 77 252 0636.</p>
           </section>
         </div>
       </div>
