@@ -3,10 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from '../db.js';
 import { sendTrackingEmail } from '../email.js';
-import { requireAdmin } from '../middleware/auth.js';
+import { requireAdmin, JWT_SECRET } from '../middleware/auth.js';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-me';
 
 // ─── Auth ───────────────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
@@ -61,12 +60,12 @@ router.get('/stats', async (req, res) => {
     const failed = await query("SELECT COUNT(*) FROM shipments WHERE status = 'failed_delivery'");
     const returned = await query("SELECT COUNT(*) FROM shipments WHERE status = 'returned_to_sender'");
     const todayPickups = await query("SELECT COUNT(*) FROM shipments WHERE DATE(pickup_scheduled_at) = CURRENT_DATE");
-    const todayDeliveries = await query("SELECT COUNT(*) FROM shipments WHERE DATE(delivered_at) = CURRENT_DATE");
-    const totalCod = await query("SELECT COALESCE(SUM(cod_amount), 0) FROM shipments WHERE payment_status = 'cod'");
-    const totalCharges = await query("SELECT COALESCE(SUM(delivery_charge), 0) FROM shipments");
+    const todayDeliveries = await query("SELECT COUNT(*) FROM shipments WHERE status = 'delivered' AND DATE(delivered_at) = CURRENT_DATE");
+    const totalCod = await query("SELECT COALESCE(SUM(cod_amount), 0) AS value FROM shipments WHERE payment_status = 'cod'");
+    const totalCharges = await query("SELECT COALESCE(SUM(delivery_charge), 0) AS value FROM shipments");
     const activeRiders = await query("SELECT COUNT(*) FROM delivery_staff WHERE role IN ('pickup_driver','delivery_rider') AND is_active = true");
     const totalClients = await query("SELECT COUNT(*) FROM clients WHERE is_active = true");
-    const pendingCod = await query("SELECT COALESCE(SUM(cod_amount), 0) FROM shipments WHERE payment_status = 'cod' AND status != 'delivered'");
+    const pendingCod = await query("SELECT COALESCE(SUM(cod_amount), 0) AS value FROM shipments WHERE payment_status = 'cod' AND status != 'delivered'");
 
     res.json({
       total: parseInt(total.rows[0].count),
@@ -80,11 +79,11 @@ router.get('/stats', async (req, res) => {
       returned: parseInt(returned.rows[0].count),
       todayPickups: parseInt(todayPickups.rows[0].count),
       todayDeliveries: parseInt(todayDeliveries.rows[0].count),
-      totalCod: parseFloat(totalCod.rows[0].coalesce),
-      totalCharges: parseFloat(totalCharges.rows[0].coalesce),
+      totalCod: parseFloat(totalCod.rows[0].value),
+      totalCharges: parseFloat(totalCharges.rows[0].value),
       activeRiders: parseInt(activeRiders.rows[0].count),
       totalClients: parseInt(totalClients.rows[0].count),
-      pendingCod: parseFloat(pendingCod.rows[0].coalesce),
+      pendingCod: parseFloat(pendingCod.rows[0].value),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -155,8 +154,8 @@ router.get('/shipments/tracking/:tracking_number/events', async (req, res) => {
   try {
     const shipment = await query('SELECT id FROM shipments WHERE tracking_number = $1', [req.params.tracking_number]);
     if (!shipment.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
-    const events = await query('SELECT * FROM tracking_events WHERE shipment_id = $1 ORDER BY timestamp ASC', [req.params.id]);
-    const attempts = await query('SELECT * FROM delivery_attempts WHERE shipment_id = $1 ORDER BY attempt_number ASC', [req.params.id]);
+    const events = await query('SELECT * FROM tracking_events WHERE shipment_id = $1 ORDER BY timestamp ASC', [shipment.rows[0].id]);
+    const attempts = await query('SELECT * FROM delivery_attempts WHERE shipment_id = $1 ORDER BY attempt_number ASC', [shipment.rows[0].id]);
     res.json({ events: events.rows, delivery_attempts: attempts.rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -265,7 +264,7 @@ router.put('/shipments/:id/status', async (req, res) => {
       extraValues.push(staff_name || req.user?.username || null, receiver_signature || null, delivery_photo || null, delivery_remarks || null);
     }
     if (status === 'picked_up') extraFields = ', pickup_completed_at=CURRENT_TIMESTAMP';
-    if (status === 'returned_to_sender') extraFields = ', delivered_at=CURRENT_TIMESTAMP';
+    if (status === 'returned_to_sender') extraFields = ', updated_at=CURRENT_TIMESTAMP';
 
     const shipment = await query(`UPDATE shipments SET status=$1, updated_at=CURRENT_TIMESTAMP${extraFields} WHERE id=$2 RETURNING *`,
       [status, req.params.id, ...extraValues]);
@@ -631,11 +630,12 @@ router.get('/reports/rider-performance', async (req, res) => {
 
 router.get('/reports/export', async (req, res) => {
   try {
-    const { startDate, endDate, format } = req.query;
+    const { startDate, endDate } = req.query;
     let sql = `SELECT s.*, c.company_name AS client_name FROM shipments s LEFT JOIN clients c ON s.client_id = c.id WHERE 1=1`;
     const params = [];
-    if (startDate) { sql += ' AND s.created_at >= $1'; params.push(startDate); }
-    if (endDate) { sql += ' AND s.created_at <= $2'; params.push(endDate); }
+    let idx = 1;
+    if (startDate) { sql += ` AND s.created_at >= $${idx}`; params.push(startDate); idx++; }
+    if (endDate) { sql += ` AND s.created_at <= $${idx}`; params.push(endDate); idx++; }
     sql += ' ORDER BY s.created_at DESC';
     const result = await query(sql, params.length ? params : undefined);
     res.json(result.rows);

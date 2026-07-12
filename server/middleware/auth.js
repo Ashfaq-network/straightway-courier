@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'straightway-secret-key-change-in-production';
+export const JWT_SECRET = process.env.JWT_SECRET || 'straightway-secret-key-change-in-production';
 
 export function generateToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });

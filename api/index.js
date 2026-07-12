@@ -9,18 +9,20 @@ import clientRoutes from '../server/routes/client.js';
 
 const app = express();
 let initialized = false;
+let initPromise = null;
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 app.use(async (req, res, next) => {
   if (!initialized) {
-    try {
-      await initDB();
-    } catch (err) {
-      console.error('DB init failed:', err);
+    if (!initPromise) {
+      initPromise = initDB().then(() => { initialized = true; }).catch(err => {
+        console.error('DB init failed:', err);
+        initPromise = null;
+      });
     }
-    initialized = true;
+    await initPromise;
   }
   next();
 });

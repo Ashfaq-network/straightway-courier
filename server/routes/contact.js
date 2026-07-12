@@ -4,6 +4,10 @@ import { query } from '../db.js';
 
 const router = Router();
 
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
 router.post('/', async (req, res) => {
   try {
     const { name, email, phone, subject, message } = req.body;
@@ -29,7 +33,7 @@ router.post('/', async (req, res) => {
         from: process.env.SMTP_FROM || email,
         to: process.env.CONTACT_EMAIL || process.env.SMTP_FROM,
         subject: `Contact Form: ${subject || 'No Subject'}`,
-        html: `<p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Phone:</strong> ${phone || 'N/A'}</p><p><strong>Message:</strong></p><p>${message}</p>`,
+        html: `<p><strong>Name:</strong> ${escapeHtml(name)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Phone:</strong> ${escapeHtml(phone || 'N/A')}</p><p><strong>Message:</strong></p><p>${escapeHtml(message)}</p>`,
       });
     }
 

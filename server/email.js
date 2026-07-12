@@ -23,10 +23,10 @@ const templates = {
     body: 'Your parcel has been picked up and is on its way. Our team is handling it with care.',
     color: '#f97316',
   },
-  at_warehouse: {
-    subject: (tn) => `📍 Parcel at Warehouse — ${tn}`,
-    heading: 'Your Parcel Has Reached Our Warehouse',
-    body: 'Your parcel has arrived safely at our warehouse and will be sorted shortly.',
+  at_sorting_center: {
+    subject: (tn) => `📍 Parcel at Sorting Center — ${tn}`,
+    heading: 'Your Parcel Has Reached Our Sorting Center',
+    body: 'Your parcel has arrived at our sorting center and will be dispatched shortly.',
     color: '#8b5cf6',
   },
   out_for_delivery: {
@@ -47,7 +47,7 @@ const templates = {
     body: 'Your delivery date has been updated. Please check the tracking page for the new scheduled time.',
     color: '#0891b2',
   },
-  failed: {
+  failed_delivery: {
     subject: (tn) => `⚠️ Delivery Delayed — ${tn}`,
     heading: 'Your Delivery Has Been Delayed',
     body: 'We encountered an issue with your delivery. Our team is working to resolve it. Please check tracking for updates or contact us.',
@@ -62,6 +62,10 @@ const defaultTemplate = {
   color: '#2563eb',
 };
 
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
 function buildEmailHtml({ receiverName, senderName, trackingNumber, heading, body, color }) {
   return `
     <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #f9fafb; border-radius: 16px;">
@@ -69,15 +73,15 @@ function buildEmailHtml({ receiverName, senderName, trackingNumber, heading, bod
         <h1 style="color: #ffffff; margin: 0; font-size: 20px; letter-spacing: 1px;">STRAIGHTWAY COURIERS</h1>
       </div>
 
-      <h2 style="color: #111827; margin: 0 0 8px;">${heading}</h2>
-      <p style="color: #6b7280; margin: 0 0 20px; font-size: 14px;">Hi ${receiverName},</p>
-      <p style="color: #6b7280; margin: 0 0 20px; font-size: 14px; line-height: 1.6;">${body}</p>
+      <h2 style="color: #111827; margin: 0 0 8px;">${escapeHtml(heading)}</h2>
+      <p style="color: #6b7280; margin: 0 0 20px; font-size: 14px;">Hi ${escapeHtml(receiverName)},</p>
+      <p style="color: #6b7280; margin: 0 0 20px; font-size: 14px; line-height: 1.6;">${escapeHtml(body)}</p>
 
-      ${senderName ? `<p style="color: #6b7280; margin: 0 0 20px; font-size: 14px;">Sent by: <strong>${senderName}</strong></p>` : ''}
+      ${senderName ? `<p style="color: #6b7280; margin: 0 0 20px; font-size: 14px;">Sent by: <strong>${escapeHtml(senderName)}</strong></p>` : ''}
 
       <div style="background: #ffffff; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px; border: 1px solid #e5e7eb;">
         <p style="color: #6b7280; font-size: 12px; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 1px;">Tracking Number</p>
-        <p style="font-size: 24px; font-weight: 700; color: ${color}; margin: 0; letter-spacing: 2px;">${trackingNumber}</p>
+        <p style="font-size: 24px; font-weight: 700; color: ${color}; margin: 0; letter-spacing: 2px;">${escapeHtml(trackingNumber)}</p>
       </div>
 
       <a href="${trackingUrl(trackingNumber)}" style="display: block; background: ${color}; color: #ffffff; text-decoration: none; padding: 14px 24px; border-radius: 10px; font-size: 15px; font-weight: 600; text-align: center; margin-bottom: 20px;">Track Your Shipment</a>

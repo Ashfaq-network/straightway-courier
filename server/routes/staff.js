@@ -2,10 +2,9 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from '../db.js';
-import { requireStaff } from '../middleware/auth.js';
+import { requireStaff, JWT_SECRET } from '../middleware/auth.js';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-me';
 
 router.post('/login', async (req, res) => {
   try {
@@ -68,6 +67,15 @@ router.put('/shipments/:id/status', async (req, res) => {
     ];
     if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
+    const existing = await query('SELECT * FROM shipments WHERE id = $1', [req.params.id]);
+    if (!existing.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
+    const s = existing.rows[0];
+
+    if (req.user.role === 'pickup_driver' && s.pickup_driver_id !== req.user.id)
+      return res.status(403).json({ error: 'Not authorized for this shipment' });
+    if (req.user.role === 'delivery_rider' && s.delivery_rider_id !== req.user.id)
+      return res.status(403).json({ error: 'Not authorized for this shipment' });
+
     let extra = '';
     const vals = [];
     if (status === 'delivered') {
@@ -94,6 +102,13 @@ router.put('/shipments/:id/status', async (req, res) => {
 router.post('/shipments/:id/delivery-attempt', async (req, res) => {
   try {
     const { reason, custom_note } = req.body;
+    if (!reason) return res.status(400).json({ error: 'Reason is required' });
+
+    const existing = await query('SELECT * FROM shipments WHERE id = $1', [req.params.id]);
+    if (!existing.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
+
+    if (req.user.role === 'delivery_rider' && existing.rows[0].delivery_rider_id !== req.user.id)
+      return res.status(403).json({ error: 'Not authorized for this shipment' });
     const attemptCount = await query('SELECT COUNT(*) FROM delivery_attempts WHERE shipment_id = $1', [req.params.id]);
     const attemptNumber = parseInt(attemptCount.rows[0].count) + 1;
     await query(`INSERT INTO delivery_attempts (shipment_id, attempt_number, status, reason, custom_note, attempted_by)
