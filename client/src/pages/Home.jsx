@@ -611,7 +611,7 @@ export default function Home() {
                   <a href="https://wa.me/94772520636" target="_blank" rel="noopener noreferrer" className="btn-accent">
                     WhatsApp +94 772520636
                   </a>
-                  <a href="tel:+94772520636" className="btn-outline !border-white/30 !text-white hover:!bg-white/10">
+                  <a href="tel:+94772520636" className="btn-outline !border-white/30 !text-brand-900 !bg-white hover:!bg-white/90">
                     Call +94 77 252 0636
                   </a>
                 </div>
