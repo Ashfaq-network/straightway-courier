@@ -8,69 +8,58 @@ export default function StaffDashboard() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [selectedShipment, setSelectedShipment] = useState(null);
-  const [status, setStatus] = useState('');
-  const [location, setLocation] = useState('');
-  const [description, setDescription] = useState('');
-  const [attemptReason, setAttemptReason] = useState('');
-  const [attemptNote, setAttemptNote] = useState('');
+  const [doingAction, setDoingAction] = useState(null);
   const navigate = useNavigate();
+
+  const getToken = () => sessionStorage.getItem('staff_token');
 
   useEffect(() => {
     fetchProfile();
     fetchShipments();
   }, []);
 
-  const getToken = () => sessionStorage.getItem('staff_token');
-
   const fetchProfile = async () => {
     try {
-      const res = await fetch(`${API}/profile`, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-      });
+      const res = await fetch(`${API}/profile`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
       if (res.ok) setProfile(await res.json());
     } catch (err) { console.error(err); }
   };
 
   const fetchShipments = async () => {
     try {
-      const res = await fetch(`${API}/my-shipments`, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-      });
+      const res = await fetch(`${API}/my-shipments`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
       if (res.status === 401 || res.status === 403) {
         sessionStorage.removeItem('staff_token');
         navigate('/staff');
         return;
       }
-      const data = await res.json();
-      setShipments(data);
+      setShipments(await res.json());
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
-  const handleStatusUpdate = async (id) => {
-    if (!status) return;
-    await fetch(`${API}/shipments/${id}/status`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-      body: JSON.stringify({ status, location, description })
-    });
-    setSelectedShipment(null);
-    setStatus('');
-    setLocation('');
-    setDescription('');
-    fetchShipments();
+  const handleStatusUpdate = async (id, status, extra = {}) => {
+    setDoingAction(id);
+    try {
+      const res = await fetch(`${API}/shipments/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ status, ...extra })
+      });
+      if (res.ok) { setSelectedShipment(null); fetchShipments(); }
+    } catch (err) { console.error(err); } finally { setDoingAction(null); }
   };
 
-  const handleDeliveryAttempt = async (id) => {
-    if (!attemptReason) return;
-    await fetch(`${API}/shipments/${id}/delivery-attempt`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-      body: JSON.stringify({ reason: attemptReason, custom_note: attemptNote })
-    });
-    setSelectedShipment(null);
-    setAttemptReason('');
-    setAttemptNote('');
-    fetchShipments();
+  const handleDeliveryAttempt = async (id, reason, note) => {
+    setDoingAction(id);
+    try {
+      await fetch(`${API}/shipments/${id}/delivery-attempt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ reason, custom_note: note })
+      });
+      setSelectedShipment(null);
+      fetchShipments();
+    } catch (err) { console.error(err); } finally { setDoingAction(null); }
   };
 
   const handleLogout = () => {
@@ -79,107 +68,210 @@ export default function StaffDashboard() {
   };
 
   const statusColors = {
-    pending: 'bg-yellow-100 text-yellow-800',
+    pickup_requested: 'bg-yellow-100 text-yellow-800',
     picked_up: 'bg-orange-100 text-orange-800',
     at_warehouse: 'bg-purple-100 text-purple-800',
+    at_sorting_center: 'bg-violet-100 text-violet-800',
     sorted: 'bg-indigo-100 text-indigo-800',
     out_for_delivery: 'bg-blue-100 text-blue-800',
     customer_contacted: 'bg-teal-100 text-teal-800',
     delivered: 'bg-green-100 text-green-800',
-    returned: 'bg-red-100 text-red-800',
+    failed_delivery: 'bg-red-100 text-red-800',
+    returned_to_sender: 'bg-gray-200 text-gray-800',
     rescheduled: 'bg-cyan-100 text-cyan-800',
-    failed: 'bg-gray-200 text-gray-800',
   };
 
+  const isPickupDriver = profile?.role === 'pickup_driver';
+  const isDeliveryRider = profile?.role === 'delivery_rider';
+
+  const PickupForm = ({ s }) => {
+    const [location, setLocation] = useState(s.pickup_address || s.sender_address || '');
+    const [desc, setDesc] = useState('Parcel collected from sender');
+    return (
+      <div className="flex flex-col gap-2 w-full sm:w-72">
+        <p className="text-xs font-semibold text-amber-600 mb-1">Complete Pickup</p>
+        <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Pickup location"
+          className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg" />
+        <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description"
+          className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg" />
+        <div className="flex gap-1">
+          <button onClick={() => handleStatusUpdate(s.id, 'picked_up', { location, description: desc })}
+            disabled={doingAction === s.id}
+            className="flex-1 px-3 py-1.5 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 disabled:opacity-50">
+            {doingAction === s.id ? 'Updating...' : 'Confirm Pickup'}
+          </button>
+          <button onClick={() => setSelectedShipment(null)} className="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded-lg">Cancel</button>
+        </div>
+      </div>
+    );
+  };
+
+  const DeliveryForm = ({ s }) => {
+    const [step, setStep] = useState('options');
+    const [location, setLocation] = useState(s.delivery_address || s.receiver_address || '');
+    const [desc, setDesc] = useState('');
+    const [signature, setSignature] = useState('');
+    const [photoUrl, setPhotoUrl] = useState('');
+    const [remarks, setRemarks] = useState('');
+    const [reason, setReason] = useState('');
+    const [note, setNote] = useState('');
+
+    if (step === 'deliver') {
+      return (
+        <div className="flex flex-col gap-2 w-full sm:w-80">
+          <p className="text-xs font-semibold text-green-600 mb-1">Complete Delivery</p>
+          <input value={signature} onChange={e => setSignature(e.target.value)} placeholder="Receiver name (signature)"
+            className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg" />
+          <input value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} placeholder="Delivery photo URL (optional)"
+            className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg" />
+          <input value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Delivery remarks (optional)"
+            className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg" />
+          <div className="flex gap-1">
+            <button onClick={() => handleStatusUpdate(s.id, 'delivered', { location, description: desc || 'Delivered successfully', receiver_signature: signature, delivery_photo: photoUrl, delivery_remarks: remarks })}
+              disabled={doingAction === s.id || !signature}
+              className="flex-1 px-3 py-1.5 bg-green-500 text-white text-xs font-semibold rounded-lg hover:bg-green-600 disabled:opacity-50">
+              {doingAction === s.id ? 'Saving...' : 'Mark Delivered'}
+            </button>
+            <button onClick={() => setStep('options')} className="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded-lg">Back</button>
+          </div>
+        </div>
+      );
+    }
+
+    if (step === 'fail') {
+      return (
+        <div className="flex flex-col gap-2 w-full sm:w-72">
+          <p className="text-xs font-semibold text-red-600 mb-1">Log Failed Delivery</p>
+          <select value={reason} onChange={e => setReason(e.target.value)}
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+            <option value="">Select reason...</option>
+            <option value="Customer unavailable">Customer unavailable</option>
+            <option value="Wrong address">Wrong address</option>
+            <option value="Phone unreachable">Phone unreachable</option>
+            <option value="Business closed">Business closed</option>
+            <option value="Other">Other</option>
+          </select>
+          <input value={note} onChange={e => setNote(e.target.value)} placeholder="Additional notes"
+            className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg" />
+          <div className="flex gap-1">
+            <button onClick={() => handleDeliveryAttempt(s.id, reason, note)}
+              disabled={doingAction === s.id || !reason}
+              className="flex-1 px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded-lg hover:bg-red-600 disabled:opacity-50">
+              {doingAction === s.id ? 'Logging...' : 'Log Failed Attempt'}
+            </button>
+            <button onClick={() => setStep('options')} className="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded-lg">Back</button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col gap-2 w-full sm:w-72">
+        <p className="text-xs font-semibold text-gray-600 mb-1">Update Delivery Status</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => handleStatusUpdate(s.id, 'out_for_delivery', { location, description: 'Out for delivery' })}
+            disabled={doingAction === s.id}
+            className="px-3 py-2 bg-blue-500 text-white text-xs font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50">
+            Out for Delivery
+          </button>
+          <button onClick={() => handleStatusUpdate(s.id, 'customer_contacted', { location, description: 'Customer contacted' })}
+            disabled={doingAction === s.id}
+            className="px-3 py-2 bg-teal-500 text-white text-xs font-semibold rounded-lg hover:bg-teal-600 disabled:opacity-50">
+            Contacted
+          </button>
+          <button onClick={() => setStep('deliver')}
+            className="px-3 py-2 bg-green-500 text-white text-xs font-semibold rounded-lg hover:bg-green-600">
+            Deliver ✓
+          </button>
+          <button onClick={() => setStep('fail')}
+            className="px-3 py-2 bg-red-500 text-white text-xs font-semibold rounded-lg hover:bg-red-600">
+            Failed ✗
+          </button>
+        </div>
+        <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Current location"
+          className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg mt-1" />
+        <button onClick={() => setSelectedShipment(null)} className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+      </div>
+    );
+  };
+
+  const roleLabel = isPickupDriver ? 'Pickup Driver' : isDeliveryRider ? 'Delivery Rider' : 'Staff';
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-      {/* Header */}
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Delivery Portal</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{roleLabel} Portal</h1>
           {profile && <p className="text-sm text-gray-500">Welcome, {profile.name}</p>}
         </div>
-        <button onClick={handleLogout} className="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 text-sm transition-colors">
-          Logout
-        </button>
+        <button onClick={handleLogout} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">Logout</button>
       </div>
 
-      {/* Assigned Shipments */}
       {loading ? (
         <p className="text-gray-500">Loading...</p>
       ) : shipments.length === 0 ? (
-        <div className="text-center py-16 bg-gray-50 rounded-xl">
-          <p className="text-gray-500">No assigned shipments right now.</p>
+        <div className="text-center py-16 bg-gray-50 rounded-xl border border-gray-100">
+          <p className="text-gray-500 mb-2">No assigned shipments right now.</p>
+          <p className="text-xs text-gray-400">New tasks will appear here when assigned.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {shipments.map(s => (
             <div key={s.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex-1">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-bold text-gray-900">{s.tracking_number}</span>
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${statusColors[s.status] || 'bg-gray-100 text-gray-800'}`}>
                       {s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600">
-                    {s.receiver_name} &mdash; {s.receiver_phone}
-                  </p>
-                  <p className="text-xs text-gray-400">{s.origin} &rarr; {s.destination}</p>
-                  {s.special_instructions && (
-                    <p className="text-xs text-amber-600 mt-1">
-                      <span className="font-medium">Instructions:</span> {s.special_instructions}
-                    </p>
-                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1 text-sm text-gray-600 mt-2">
+                    <div>
+                      <span className="text-xs text-gray-400 block">Sender</span>
+                      {s.sender_name} — {s.sender_phone}
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400 block">Receiver</span>
+                      {s.receiver_name} — {s.receiver_phone}
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400 block">Route</span>
+                      {s.origin} → {s.destination}
+                    </div>
+                    {s.pickup_address && isPickupDriver && (
+                      <div>
+                        <span className="text-xs text-gray-400 block">Pickup Address</span>
+                        {s.pickup_address}
+                      </div>
+                    )}
+                    {s.delivery_address && isDeliveryRider && (
+                      <div>
+                        <span className="text-xs text-gray-400 block">Delivery Address</span>
+                        {s.delivery_address}
+                      </div>
+                    )}
+                    {s.special_instructions && (
+                      <div className="sm:col-span-2">
+                        <span className="text-xs text-amber-500 block font-medium">Instructions</span>
+                        <span className="text-amber-700">{s.special_instructions}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {selectedShipment === s.id ? (
-                  <div className="flex flex-col gap-2 w-full sm:w-64">
-                    <select value={status} onChange={(e) => setStatus(e.target.value)}
-                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                      <option value="">Update status...</option>
-                      {['picked_up','at_warehouse','sorted','out_for_delivery','customer_contacted','delivered','returned','rescheduled'].map(st => (
-                        <option key={st} value={st}>{st.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
-                      ))}
-                    </select>
-                    <input type="text" placeholder="Location" value={location} onChange={(e) => setLocation(e.target.value)}
-                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
-                    <input type="text" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)}
-                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
-                    <div className="flex gap-1">
-                      <button onClick={() => handleStatusUpdate(s.id)} className="flex-1 px-3 py-1.5 bg-purple-500 text-white text-xs font-semibold rounded-lg hover:bg-purple-600">
-                        Update
-                      </button>
-                      <button onClick={() => setSelectedShipment(null)} className="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded-lg hover:bg-gray-300">
-                        Cancel
-                      </button>
-                    </div>
-                    {/* Delivery Attempt */}
-                    <div className="border-t border-gray-200 pt-2 mt-1">
-                      <p className="text-xs font-medium text-gray-500 mb-1">Failed delivery?</p>
-                      <select value={attemptReason} onChange={(e) => setAttemptReason(e.target.value)}
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 mb-1">
-                        <option value="">Select reason...</option>
-                        <option value="Customer unavailable">Customer unavailable</option>
-                        <option value="Requested delivery on another day">Requested delivery on another day</option>
-                        <option value="Incorrect address">Incorrect address</option>
-                        <option value="Phone unreachable">Phone unreachable</option>
-                        <option value="Other">Other</option>
-                      </select>
-                      <input type="text" placeholder="Note" value={attemptNote} onChange={(e) => setAttemptNote(e.target.value)}
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 mb-1" />
-                      <button onClick={() => handleDeliveryAttempt(s.id)} className="w-full px-3 py-1.5 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600">
-                        Log Failed Attempt
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button onClick={() => setSelectedShipment(s.id)}
-                    className="px-4 py-2 bg-purple-500 text-white text-sm font-semibold rounded-lg hover:bg-purple-600 transition-colors whitespace-nowrap">
-                    Update Status
-                  </button>
-                )}
+                <div className="flex-shrink-0">
+                  {selectedShipment === s.id ? (
+                    isPickupDriver ? <PickupForm s={s} /> : isDeliveryRider ? <DeliveryForm s={s} /> : null
+                  ) : (
+                    <button onClick={() => setSelectedShipment(s.id)}
+                      className={`px-4 py-2 text-sm font-semibold rounded-lg text-white transition-colors whitespace-nowrap ${
+                        isPickupDriver ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'
+                      }`}>
+                      {isPickupDriver ? 'Start Pickup' : 'Update Delivery'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}

@@ -1,14 +1,18 @@
 const eventConfig = {
   order_created: { color: 'bg-blue-500', ring: 'ring-blue-200', icon: '📋', label: 'Order Created' },
+  pickup_requested: { color: 'bg-yellow-500', ring: 'ring-yellow-200', icon: '📞', label: 'Pickup Requested' },
   picked_up: { color: 'bg-amber-500', ring: 'ring-amber-200', icon: '📦', label: 'Parcel Picked Up' },
   at_warehouse: { color: 'bg-purple-500', ring: 'ring-purple-200', icon: '🏢', label: 'Arrived at Warehouse' },
+  at_sorting_center: { color: 'bg-violet-500', ring: 'ring-violet-200', icon: '📫', label: 'At Sorting Center' },
   sorted: { color: 'bg-indigo-500', ring: 'ring-indigo-200', icon: '📑', label: 'Parcel Sorted' },
   out_for_delivery: { color: 'bg-orange-500', ring: 'ring-orange-200', icon: '🚚', label: 'Out for Delivery' },
   customer_contacted: { color: 'bg-teal-500', ring: 'ring-teal-200', icon: '📞', label: 'Customer Contacted' },
   delivered: { color: 'bg-emerald-500', ring: 'ring-emerald-200', icon: '✅', label: 'Delivered Successfully' },
   returned: { color: 'bg-red-500', ring: 'ring-red-200', icon: '↩️', label: 'Returned' },
+  returned_to_sender: { color: 'bg-red-600', ring: 'ring-red-300', icon: '↩️', label: 'Returned to Sender' },
   rescheduled: { color: 'bg-cyan-500', ring: 'ring-cyan-200', icon: '📅', label: 'Delivery Rescheduled' },
   failed: { color: 'bg-red-500', ring: 'ring-red-200', icon: '❌', label: 'Delivery Failed' },
+  failed_delivery: { color: 'bg-red-500', ring: 'ring-red-200', icon: '❌', label: 'Delivery Failed' },
   delivery_attempt: { color: 'bg-yellow-500', ring: 'ring-yellow-200', icon: '🔄', label: 'Delivery Attempt' },
   storage_charges: { color: 'bg-rose-500', ring: 'ring-rose-200', icon: '💰', label: 'Storage Charges May Apply' },
 };

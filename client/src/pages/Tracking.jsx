@@ -41,24 +41,29 @@ export default function Tracking() {
   };
 
   const statusColors = {
-    pending: 'bg-amber-50 text-amber-700 border-amber-200',
+    pickup_requested: 'bg-yellow-50 text-yellow-700 border-yellow-200',
     picked_up: 'bg-orange-50 text-orange-700 border-orange-200',
     at_warehouse: 'bg-purple-50 text-purple-700 border-purple-200',
+    at_sorting_center: 'bg-violet-50 text-violet-700 border-violet-200',
     sorted: 'bg-indigo-50 text-indigo-700 border-indigo-200',
     out_for_delivery: 'bg-blue-50 text-blue-700 border-blue-200',
     customer_contacted: 'bg-teal-50 text-teal-700 border-teal-200',
     delivered: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     returned: 'bg-red-50 text-red-700 border-red-200',
+    returned_to_sender: 'bg-red-50 text-red-700 border-red-200',
     rescheduled: 'bg-cyan-50 text-cyan-700 border-cyan-200',
     failed: 'bg-gray-100 text-gray-700 border-gray-200',
+    failed_delivery: 'bg-gray-100 text-gray-700 border-gray-200',
   };
 
   const statusDots = {
     delivered: 'bg-emerald-500',
     out_for_delivery: 'bg-blue-500',
-    pending: 'bg-amber-500',
+    pickup_requested: 'bg-yellow-500',
     failed: 'bg-red-500',
+    failed_delivery: 'bg-red-500',
     returned: 'bg-red-500',
+    returned_to_sender: 'bg-red-500',
   };
 
   const s = result?.shipment;
@@ -82,7 +87,7 @@ export default function Tracking() {
               <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <input type="text" placeholder="Enter tracking number (e.g. SWC-...)" value={trackingNumber}
+              <input type="text" placeholder="Enter tracking number (e.g. SW0001)" value={trackingNumber}
                 onChange={(e) => setTrackingNumber(e.target.value)}
                 className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-gray-50" />
             </div>
