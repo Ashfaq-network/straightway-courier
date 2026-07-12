@@ -3,13 +3,20 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const links = [
+  { to: '/', label: 'Home' },
   { to: '/track', label: 'Track' },
+  { to: '/services', label: 'Services' },
+  { to: '/about', label: 'About' },
+  { to: '/faqs', label: 'FAQs' },
+  { to: '/contact', label: 'Contact' },
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === '/';
+  const isDashboard = location.pathname.startsWith('/admin') || location.pathname.startsWith('/staff') || location.pathname.startsWith('/client');
+  if (isDashboard) return null;
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isHome ? 'bg-transparent' : 'bg-white/95 shadow-sm border-b border-gray-100'}`}>
