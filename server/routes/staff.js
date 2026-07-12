@@ -71,7 +71,7 @@ router.put('/shipments/:id/status', async (req, res) => {
     let extra = '';
     const vals = [];
     if (status === 'delivered') {
-      extra = ', delivered_at=CURRENT_TIMESTAMP, delivered_by=$7, receiver_signature=$8, delivery_photo=$9, delivery_remarks=$10';
+      extra = ', delivered_at=CURRENT_TIMESTAMP, delivered_by=$3, receiver_signature=$4, delivery_photo=$5, delivery_remarks=$6';
       vals.push(req.user.name, receiver_signature || null, delivery_photo || null, delivery_remarks || null);
     }
     if (status === 'picked_up') extra = ', pickup_completed_at=CURRENT_TIMESTAMP';
