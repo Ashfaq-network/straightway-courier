@@ -22,7 +22,7 @@ export default function Reports({ onBack }) {
   }, [tab, date, monthStr]);
 
   const fetchDaily = async () => {
-    const res = await fetch(`${API}/reports/daily?date='${date}'::date`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+    const res = await fetch(`${API}/reports/daily?date=${date}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
     if (res.ok) setDaily(await res.json());
   };
 

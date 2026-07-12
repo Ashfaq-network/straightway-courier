@@ -19,6 +19,8 @@ export default function AdminDashboard() {
   const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const navigate = useNavigate();
 
   const getToken = () => sessionStorage.getItem('swc_token');
@@ -41,6 +43,8 @@ export default function AdminDashboard() {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (statusFilter) params.append('status', statusFilter);
+      if (dateFrom) params.append('startDate', dateFrom);
+      if (dateTo) params.append('endDate', dateTo);
       const res = await fetch(`${API}/shipments?${params}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
       if (res.ok) setShipments(await res.json());
       else if (res.status === 401) { sessionStorage.removeItem('swc_token'); navigate('/admin'); }
@@ -149,11 +153,11 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <form onSubmit={(e) => { e.preventDefault(); fetchShipments(); }} className="flex-1 flex gap-2">
-          <input type="text" placeholder="Search by tracking #, name, phone..." value={search}
+      <div className="flex flex-col gap-3 mb-4">
+        <form onSubmit={(e) => { e.preventDefault(); fetchShipments(); }} className="flex flex-wrap gap-2">
+          <input type="text" placeholder="Search tracking #, name, phone..." value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm" />
+            className="flex-1 min-w-[200px] px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm" />
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setTimeout(fetchShipments, 0); }}
             className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm">
             <option value="">All Statuses</option>
@@ -161,7 +165,13 @@ export default function AdminDashboard() {
               <option key={st} value={st}>{st.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
             ))}
           </select>
-          <button type="submit" className="px-4 py-2.5 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm">Search</button>
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+            className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm" title="From date" />
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+            className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm" title="To date" />
+          <button type="submit" className="px-4 py-2.5 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm">Filter</button>
+          <button type="button" onClick={() => { setSearch(''); setStatusFilter(''); setDateFrom(''); setDateTo(''); fetchShipments(); }}
+            className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">Clear</button>
         </form>
       </div>
 
@@ -178,6 +188,7 @@ export default function AdminDashboard() {
                 <th className="text-left px-4 py-3 font-medium">Tracking #</th>
                 <th className="text-left px-4 py-3 font-medium">Sender</th>
                 <th className="text-left px-4 py-3 font-medium">Receiver</th>
+                <th className="text-left px-4 py-3 font-medium">Client</th>
                 <th className="text-left px-4 py-3 font-medium">Route</th>
                 <th className="text-left px-4 py-3 font-medium">Status</th>
                 <th className="text-center px-4 py-3 font-medium">Charge</th>
@@ -190,6 +201,7 @@ export default function AdminDashboard() {
                   <td className="px-4 py-3 font-medium text-gray-900">{s.tracking_number}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{s.sender_name}<br/>{s.sender_phone}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{s.receiver_name}<br/>{s.receiver_phone}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500">{s.client_name || '-'}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{s.origin} → {s.destination}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${statusColors[s.status] || 'bg-gray-100'}`}>

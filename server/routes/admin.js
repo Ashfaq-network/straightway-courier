@@ -557,18 +557,30 @@ router.get('/cod/summary', async (req, res) => {
 router.get('/reports/daily', async (req, res) => {
   try {
     const { date } = req.query;
-    const d = date || 'CURRENT_DATE';
-    const result = await query(`
-      SELECT
-        COUNT(*) FILTER (WHERE status IN ('pickup_requested','picked_up')) AS total_pickups,
+    let sql;
+    let params;
+    if (date) {
+      sql = `SELECT COUNT(*) FILTER (WHERE status IN ('pickup_requested','picked_up')) AS total_pickups,
         COUNT(*) FILTER (WHERE status = 'delivered') AS total_delivered,
         COUNT(*) FILTER (WHERE status IN ('pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery')) AS pending_parcels,
         COUNT(*) FILTER (WHERE status = 'failed_delivery') AS failed_deliveries,
         COUNT(*) FILTER (WHERE status = 'returned_to_sender') AS returned_parcels,
         COALESCE(SUM(cod_amount) FILTER (WHERE payment_status = 'cod'), 0) AS total_cod,
         COALESCE(SUM(delivery_charge), 0) AS total_charges
-      FROM shipments WHERE DATE(created_at) = ${d}
-    `);
+        FROM shipments WHERE DATE(created_at) = $1`;
+      params = [date];
+    } else {
+      sql = `SELECT COUNT(*) FILTER (WHERE status IN ('pickup_requested','picked_up')) AS total_pickups,
+        COUNT(*) FILTER (WHERE status = 'delivered') AS total_delivered,
+        COUNT(*) FILTER (WHERE status IN ('pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery')) AS pending_parcels,
+        COUNT(*) FILTER (WHERE status = 'failed_delivery') AS failed_deliveries,
+        COUNT(*) FILTER (WHERE status = 'returned_to_sender') AS returned_parcels,
+        COALESCE(SUM(cod_amount) FILTER (WHERE payment_status = 'cod'), 0) AS total_cod,
+        COALESCE(SUM(delivery_charge), 0) AS total_charges
+        FROM shipments WHERE DATE(created_at) = CURRENT_DATE`;
+      params = undefined;
+    }
+    const result = await query(sql, params);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -578,19 +590,16 @@ router.get('/reports/daily', async (req, res) => {
 router.get('/reports/monthly', async (req, res) => {
   try {
     const { year, month } = req.query;
-    const y = year || 'EXTRACT(YEAR FROM CURRENT_DATE)';
-    const m = month || 'EXTRACT(MONTH FROM CURRENT_DATE)';
+    if (!year || !month) return res.status(400).json({ error: 'year and month required' });
     const result = await query(`
-      SELECT
-        DATE(created_at) AS day,
-        COUNT(*) AS total,
+      SELECT DATE(created_at) AS day, COUNT(*) AS total,
         COUNT(*) FILTER (WHERE status = 'delivered') AS delivered,
         COALESCE(SUM(delivery_charge), 0) AS revenue,
         COALESCE(SUM(cod_amount) FILTER (WHERE payment_status = 'cod'), 0) AS cod_total
       FROM shipments
-      WHERE EXTRACT(YEAR FROM created_at) = ${y} AND EXTRACT(MONTH FROM created_at) = ${m}
+      WHERE EXTRACT(YEAR FROM created_at) = $1 AND EXTRACT(MONTH FROM created_at) = $2
       GROUP BY DATE(created_at) ORDER BY day
-    `);
+    `, [year, month]);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
