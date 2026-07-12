@@ -10,6 +10,10 @@ export default function ClientDashboard() {
   const [invoices, setInvoices] = useState([]);
   const [trackingDetail, setTrackingDetail] = useState(null);
   const [loadingTracking, setLoadingTracking] = useState(false);
+  const [trackQuery, setTrackQuery] = useState('');
+  const [trackResult, setTrackResult] = useState(null);
+  const [trackLoading, setTrackLoading] = useState(false);
+  const [trackError, setTrackError] = useState('');
   const [form, setForm] = useState({ sender_name: '', sender_phone: '', sender_address: '', receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: '', parcel_description: '', weight: '', delivery_type: '', cod_amount: '' });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -60,6 +64,18 @@ export default function ClientDashboard() {
       const res = await fetch(`${API}/shipments/${trackingNumber}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
       if (res.ok) setTrackingDetail(await res.json());
     } catch (err) { console.error(err); } finally { setLoadingTracking(false); }
+  };
+
+  const handleTrackLookup = async () => {
+    if (!trackQuery.trim()) return;
+    setTrackLoading(true);
+    setTrackResult(null);
+    setTrackError('');
+    try {
+      const res = await fetch(`${API}/shipments/${trackQuery.trim()}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (!res.ok) { setTrackError('Shipment not found'); return; }
+      setTrackResult(await res.json());
+    } catch (err) { setTrackError(err.message); } finally { setTrackLoading(false); }
   };
 
   const handlePickupRequest = async (e) => {
@@ -125,6 +141,7 @@ export default function ClientDashboard() {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard' },
+    { id: 'track', label: 'Track Shipment' },
     { id: 'pickup', label: 'Request Pickup' },
     { id: 'history', label: 'History' },
     { id: 'invoices', label: 'Invoices' },
@@ -205,6 +222,59 @@ export default function ClientDashboard() {
                 {shipments.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">No shipments yet.</td></tr>}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {tab === 'track' && (
+        <div className="max-w-2xl">
+          <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
+            <h3 className="font-semibold text-gray-900 mb-4">Track a Shipment</h3>
+            <div className="flex gap-2">
+              <input type="text" value={trackQuery} onChange={e => setTrackQuery(e.target.value)}
+                placeholder="Enter tracking number (e.g. SW0001)"
+                className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+              <button onClick={handleTrackLookup} disabled={!trackQuery || trackLoading}
+                className="px-5 py-2.5 bg-teal-500 text-white text-sm font-semibold rounded-lg hover:bg-teal-600 disabled:opacity-50">
+                {trackLoading ? 'Searching...' : 'Track'}
+              </button>
+            </div>
+            {trackError && <p className="text-red-500 text-sm mt-2">{trackError}</p>}
+
+            {trackResult && (
+              <div className="mt-6 border-t border-gray-100 pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Tracking #{trackResult.shipment.tracking_number}</p>
+                    <p className="text-sm text-gray-600">{trackResult.shipment.receiver_name} → {trackResult.shipment.destination}</p>
+                  </div>
+                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${statusColors[trackResult.shipment.status] || 'bg-gray-100'}`}>
+                    {trackResult.shipment.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  </span>
+                </div>
+                <div className="relative">
+                  <div className="absolute left-[17px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-teal-500 to-gray-200 rounded-full" />
+                  {(trackResult.events || []).map((event, i) => {
+                    const cfg = eventConfig[event.event_type] || { color: 'bg-gray-400', ring: 'ring-gray-200', label: event.status || event.event_type };
+                    return (
+                      <div key={event.id} className="flex gap-4 pb-6 relative">
+                        <div className="flex flex-col items-center flex-shrink-0">
+                          <div className={`w-[34px] h-[34px] rounded-full ${cfg.color} ring-4 ${cfg.ring} flex items-center justify-center text-xs z-10 shadow-sm`}>
+                            <span className="text-white text-xs font-bold">{i + 1}</span>
+                          </div>
+                        </div>
+                        <div className="flex-1 pt-1">
+                          <p className="font-semibold text-sm text-gray-900">{cfg.label}</p>
+                          {event.description && <p className="text-sm text-gray-500">{event.description}</p>}
+                          {event.staff_name && <p className="text-xs text-gray-400">By: {event.staff_name}</p>}
+                          <p className="text-xs text-gray-400 mt-1">{new Date(event.timestamp).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
