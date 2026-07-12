@@ -11,7 +11,7 @@ const app = express();
 let initialized = false;
 let initPromise = null;
 
-const allowedOrigins = (process.env.CORS_ORIGIN || 'https://straightwaycourier.vercel.app,http://localhost:5173,http://localhost:5000').split(',');
+const allowedOrigins = (process.env.CORS_ORIGIN || 'https://straightwaycourier.vercel.app,https://straightwaycouriers.com,https://www.straightwaycouriers.com,http://localhost:5173,http://localhost:5000').split(',');
 app.use(cors({ origin: (origin, cb) => { if (!origin || allowedOrigins.includes(origin)) cb(null, true); else cb(new Error('Not allowed by CORS')); }, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 
