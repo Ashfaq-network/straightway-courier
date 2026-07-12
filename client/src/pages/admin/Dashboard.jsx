@@ -21,6 +21,8 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [trackData, setTrackData] = useState(null);
+  const [trackLoading, setTrackLoading] = useState(false);
   const navigate = useNavigate();
 
   const getToken = () => sessionStorage.getItem('swc_token');
@@ -66,6 +68,18 @@ export default function AdminDashboard() {
     await fetch(`${API}/shipments/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
     fetchShipments();
     fetchStats();
+  };
+
+  const viewTracking = async (id) => {
+    setTrackLoading(true);
+    setTrackData(null);
+    try {
+      const res = await fetch(`${API}/shipments/${id}/events`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (res.ok) {
+        const s = await fetch(`${API}/shipments/${id}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+        setTrackData({ shipment: await s.json(), ...await res.json() });
+      }
+    } catch (err) { console.error(err); } finally { setTrackLoading(false); }
   };
 
   const handleLogout = () => {
@@ -210,6 +224,7 @@ export default function AdminDashboard() {
                   </td>
                   <td className="px-4 py-3 text-center text-xs">{s.delivery_charge ? `LKR ${s.delivery_charge}` : '-'}</td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <button onClick={() => viewTracking(s.id)} className="text-teal-500 hover:underline text-xs mr-2">Track</button>
                     <button onClick={() => { setEditing(s); setShowForm(true); }} className="text-blue-500 hover:underline text-xs mr-2">Edit</button>
                     <button onClick={() => handleDelete(s.id)} className="text-red-500 hover:underline text-xs">Delete</button>
                   </td>
@@ -217,6 +232,73 @@ export default function AdminDashboard() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Tracking Modal */}
+      {trackData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4" onClick={() => setTrackData(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+              <div>
+                <h3 className="font-bold text-gray-900">{trackData.shipment.tracking_number}</h3>
+                <p className="text-xs text-gray-500">{trackData.shipment.receiver_name} → {trackData.shipment.destination}</p>
+              </div>
+              <button onClick={() => setTrackData(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-6">
+              {trackLoading ? (
+                <p className="text-center text-gray-500 py-8">Loading...</p>
+              ) : (
+                <div className="relative">
+                  <div className="absolute left-[17px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-brand-500 to-gray-200 rounded-full" />
+                  {(trackData.events || []).map((event, i) => {
+                    const cfg = {
+                      pickup_requested: { color: 'bg-yellow-500', ring: 'ring-yellow-200', label: 'Pickup Requested' },
+                      picked_up: { color: 'bg-amber-500', ring: 'ring-amber-200', label: 'Picked Up' },
+                      at_sorting_center: { color: 'bg-violet-500', ring: 'ring-violet-200', label: 'At Sorting Center' },
+                      sorted: { color: 'bg-indigo-500', ring: 'ring-indigo-200', label: 'Sorted' },
+                      out_for_delivery: { color: 'bg-blue-500', ring: 'ring-blue-200', label: 'Out for Delivery' },
+                      customer_contacted: { color: 'bg-teal-500', ring: 'ring-teal-200', label: 'Customer Contacted' },
+                      delivered: { color: 'bg-emerald-500', ring: 'ring-emerald-200', label: 'Delivered' },
+                      failed_delivery: { color: 'bg-red-500', ring: 'ring-red-200', label: 'Failed Delivery' },
+                      returned_to_sender: { color: 'bg-red-600', ring: 'ring-red-300', label: 'Returned to Sender' },
+                      rescheduled: { color: 'bg-cyan-500', ring: 'ring-cyan-200', label: 'Rescheduled' },
+                    }[event.event_type] || { color: 'bg-gray-400', ring: 'ring-gray-200', label: event.status || event.event_type };
+                    return (
+                      <div key={event.id} className="flex gap-4 pb-6 relative">
+                        <div className="flex flex-col items-center flex-shrink-0">
+                          <div className={`w-[34px] h-[34px] rounded-full ${cfg.color} ring-4 ${cfg.ring} flex items-center justify-center text-xs z-10 shadow-sm`}>
+                            <span className="text-white text-xs font-bold">{i + 1}</span>
+                          </div>
+                        </div>
+                        <div className="flex-1 pt-1">
+                          <p className="font-semibold text-sm text-gray-900">{cfg.label}</p>
+                          {event.description && <p className="text-sm text-gray-500">{event.description}</p>}
+                          {event.staff_name && <p className="text-xs text-gray-400">By: {event.staff_name}</p>}
+                          {event.location && <p className="text-xs text-gray-400">Location: {event.location}</p>}
+                          <p className="text-xs text-gray-400 mt-1">{new Date(event.timestamp).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {trackData.delivery_attempts?.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Delivery Attempts</p>
+                      {trackData.delivery_attempts.map(a => (
+                        <div key={a.id} className="text-xs text-gray-500 mb-1">Attempt #{a.attempt_number}: {a.reason}{a.custom_note ? ` — ${a.custom_note}` : ''} ({new Date(a.timestamp).toLocaleString()})</div>
+                      ))}
+                    </div>
+                  )}
+                  {(!trackData.events || trackData.events.length === 0) && (
+                    <p className="text-center text-gray-500 py-8">No tracking events yet.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
