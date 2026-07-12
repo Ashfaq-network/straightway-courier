@@ -13,7 +13,9 @@ import AdminLogin from './pages/admin/Login';
 import AdminDashboard from './pages/admin/Dashboard';
 import StaffLogin from './pages/staff/Login';
 import StaffDashboard from './pages/staff/Dashboard';
-import { AdminRoute, StaffRoute } from './components/ProtectedRoute';
+import ClientLogin from './pages/client/Login';
+import ClientDashboard from './pages/client/Dashboard';
+import { AdminRoute, StaffRoute, ClientRoute } from './components/ProtectedRoute';
 
 export default function App() {
   return (
@@ -33,6 +35,8 @@ export default function App() {
           <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/staff" element={<StaffLogin />} />
           <Route path="/staff/dashboard" element={<StaffRoute><StaffDashboard /></StaffRoute>} />
+          <Route path="/client" element={<ClientLogin />} />
+          <Route path="/client/dashboard" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
         </Routes>
       </main>
       <Footer />

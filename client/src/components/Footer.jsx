@@ -45,6 +45,7 @@ export default function Footer() {
                 { to: '/faqs', label: 'FAQs' },
                 { to: '/contact', label: 'Contact' },
                 { to: '/admin', label: 'Admin Login' },
+                { to: '/client', label: 'Client Login' },
               ].map(link => (
                 <Link key={link.to} to={link.to}
                   className="text-gray-400 hover:text-white transition-colors text-sm flex items-center gap-2">

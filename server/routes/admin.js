@@ -11,7 +11,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-me';
 // ─── Auth ───────────────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
   try {
-    // Auto-create default admin if no admin exists
     const count = await query('SELECT COUNT(*) FROM admins');
     if (parseInt(count.rows[0].count) === 0) {
       const hash = await bcrypt.hash('admin123', 10);
@@ -31,29 +30,61 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// All routes below require admin auth
 router.use(requireAdmin);
 
-// ─── Stats ──────────────────────────────────────────────────────────
+// ─── Generate Tracking Number ───────────────────────────────────────
+router.get('/generate-tracking', async (req, res) => {
+  try {
+    const last = await query("SELECT tracking_number FROM shipments WHERE tracking_number LIKE 'SW%' ORDER BY id DESC LIMIT 1");
+    let num = 1;
+    if (last.rows[0]) {
+      const match = last.rows[0].tracking_number.match(/SW(\d+)/);
+      if (match) num = parseInt(match[1]) + 1;
+    }
+    const tn = `SW${String(num).padStart(4, '0')}`;
+    res.json({ tracking_number: tn });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Dashboard Stats (expanded) ─────────────────────────────────────
 router.get('/stats', async (req, res) => {
   try {
     const total = await query('SELECT COUNT(*) FROM shipments');
     const today = await query("SELECT COUNT(*) FROM shipments WHERE DATE(created_at) = CURRENT_DATE");
     const delivered = await query("SELECT COUNT(*) FROM shipments WHERE status = 'delivered'");
-    const pending = await query("SELECT COUNT(*) FROM shipments WHERE status = 'pending'");
-    const inWarehouse = await query("SELECT COUNT(*) FROM shipments WHERE status = 'at_warehouse'");
+    const pickupRequested = await query("SELECT COUNT(*) FROM shipments WHERE status = 'pickup_requested'");
+    const pickedUp = await query("SELECT COUNT(*) FROM shipments WHERE status = 'picked_up'");
+    const atSorting = await query("SELECT COUNT(*) FROM shipments WHERE status = 'at_sorting_center'");
     const outForDelivery = await query("SELECT COUNT(*) FROM shipments WHERE status = 'out_for_delivery'");
-    const failed = await query("SELECT COUNT(*) FROM shipments WHERE status = 'failed'");
-    const returned = await query("SELECT COUNT(*) FROM shipments WHERE status = 'returned'");
+    const failed = await query("SELECT COUNT(*) FROM shipments WHERE status = 'failed_delivery'");
+    const returned = await query("SELECT COUNT(*) FROM shipments WHERE status = 'returned_to_sender'");
+    const todayPickups = await query("SELECT COUNT(*) FROM shipments WHERE DATE(pickup_scheduled_at) = CURRENT_DATE");
+    const todayDeliveries = await query("SELECT COUNT(*) FROM shipments WHERE DATE(delivered_at) = CURRENT_DATE");
+    const totalCod = await query("SELECT COALESCE(SUM(cod_amount), 0) FROM shipments WHERE payment_status = 'cod'");
+    const totalCharges = await query("SELECT COALESCE(SUM(delivery_charge), 0) FROM shipments");
+    const activeRiders = await query("SELECT COUNT(*) FROM delivery_staff WHERE role IN ('pickup_driver','delivery_rider') AND is_active = true");
+    const totalClients = await query("SELECT COUNT(*) FROM clients WHERE is_active = true");
+    const pendingCod = await query("SELECT COALESCE(SUM(cod_amount), 0) FROM shipments WHERE payment_status = 'cod' AND status != 'delivered'");
+
     res.json({
       total: parseInt(total.rows[0].count),
       today: parseInt(today.rows[0].count),
       delivered: parseInt(delivered.rows[0].count),
-      pending: parseInt(pending.rows[0].count),
-      inWarehouse: parseInt(inWarehouse.rows[0].count),
+      pickupRequested: parseInt(pickupRequested.rows[0].count),
+      pickedUp: parseInt(pickedUp.rows[0].count),
+      atSorting: parseInt(atSorting.rows[0].count),
       outForDelivery: parseInt(outForDelivery.rows[0].count),
       failed: parseInt(failed.rows[0].count),
       returned: parseInt(returned.rows[0].count),
+      todayPickups: parseInt(todayPickups.rows[0].count),
+      todayDeliveries: parseInt(todayDeliveries.rows[0].count),
+      totalCod: parseFloat(totalCod.rows[0].coalesce),
+      totalCharges: parseFloat(totalCharges.rows[0].coalesce),
+      activeRiders: parseInt(activeRiders.rows[0].count),
+      totalClients: parseInt(totalClients.rows[0].count),
+      pendingCod: parseFloat(pendingCod.rows[0].coalesce),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -63,38 +94,22 @@ router.get('/stats', async (req, res) => {
 // ─── Shipments CRUD ─────────────────────────────────────────────────
 router.get('/shipments', async (req, res) => {
   try {
-    const { search, status, startDate, endDate } = req.query;
-    let sql = `
-      SELECT s.*, 
-        pickup.name AS pickup_staff_name, pickup.phone AS pickup_staff_phone,
-        delivery.name AS delivery_staff_name, delivery.phone AS delivery_staff_phone
+    const { search, status, startDate, endDate, client_id } = req.query;
+    let sql = `SELECT s.*, c.company_name AS client_name
       FROM shipments s
-      LEFT JOIN delivery_staff pickup ON s.assigned_pickup_staff_id = pickup.id
-      LEFT JOIN delivery_staff delivery ON s.assigned_delivery_staff_id = delivery.id
-      WHERE 1=1
-    `;
+      LEFT JOIN clients c ON s.client_id = c.id
+      WHERE 1=1`;
     const params = [];
     let idx = 1;
     if (search) {
-      sql += ` AND (s.tracking_number ILIKE $${idx} OR s.sender_name ILIKE $${idx} OR s.receiver_name ILIKE $${idx} OR s.sender_phone ILIKE $${idx} OR s.receiver_phone ILIKE $${idx})`;
+      sql += ` AND (s.tracking_number ILIKE $${idx} OR s.sender_name ILIKE $${idx} OR s.receiver_name ILIKE $${idx} OR s.sender_phone ILIKE $${idx} OR s.receiver_phone ILIKE $${idx} OR s.receiver_address ILIKE $${idx})`;
       params.push(`%${search}%`);
       idx++;
     }
-    if (status) {
-      sql += ` AND s.status = $${idx}`;
-      params.push(status);
-      idx++;
-    }
-    if (startDate) {
-      sql += ` AND s.created_at >= $${idx}`;
-      params.push(startDate);
-      idx++;
-    }
-    if (endDate) {
-      sql += ` AND s.created_at <= $${idx}`;
-      params.push(endDate);
-      idx++;
-    }
+    if (status) { sql += ` AND s.status = $${idx}`; params.push(status); idx++; }
+    if (client_id) { sql += ` AND s.client_id = $${idx}`; params.push(client_id); idx++; }
+    if (startDate) { sql += ` AND s.created_at >= $${idx}`; params.push(startDate); idx++; }
+    if (endDate) { sql += ` AND s.created_at <= $${idx}`; params.push(endDate); idx++; }
     sql += ' ORDER BY s.created_at DESC';
     const result = await query(sql, params);
     res.json(result.rows);
@@ -105,15 +120,8 @@ router.get('/shipments', async (req, res) => {
 
 router.get('/shipments/:id', async (req, res) => {
   try {
-    const result = await query(`
-      SELECT s.*, 
-        pickup.name AS pickup_staff_name, pickup.phone AS pickup_staff_phone,
-        delivery.name AS delivery_staff_name, delivery.phone AS delivery_staff_phone
-      FROM shipments s
-      LEFT JOIN delivery_staff pickup ON s.assigned_pickup_staff_id = pickup.id
-      LEFT JOIN delivery_staff delivery ON s.assigned_delivery_staff_id = delivery.id
-      WHERE s.id = $1
-    `, [req.params.id]);
+    const result = await query(`SELECT s.*, c.company_name AS client_name
+      FROM shipments s LEFT JOIN clients c ON s.client_id = c.id WHERE s.id = $1`, [req.params.id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
     res.json(result.rows[0]);
   } catch (err) {
@@ -147,8 +155,8 @@ router.get('/shipments/tracking/:tracking_number/events', async (req, res) => {
   try {
     const shipment = await query('SELECT id FROM shipments WHERE tracking_number = $1', [req.params.tracking_number]);
     if (!shipment.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
-    const events = await query('SELECT * FROM tracking_events WHERE shipment_id = $1 ORDER BY timestamp ASC', [shipment.rows[0].id]);
-    const attempts = await query('SELECT * FROM delivery_attempts WHERE shipment_id = $1 ORDER BY attempt_number ASC', [shipment.rows[0].id]);
+    const events = await query('SELECT * FROM tracking_events WHERE shipment_id = $1 ORDER BY timestamp ASC', [req.params.id]);
+    const attempts = await query('SELECT * FROM delivery_attempts WHERE shipment_id = $1 ORDER BY attempt_number ASC', [req.params.id]);
     res.json({ events: events.rows, delivery_attempts: attempts.rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -158,49 +166,39 @@ router.get('/shipments/tracking/:tracking_number/events', async (req, res) => {
 router.post('/shipments', async (req, res) => {
   try {
     const {
-      tracking_number, sender_name, sender_phone, sender_email, sender_address,
-      receiver_name, receiver_phone, receiver_email, receiver_address,
-      origin, destination, parcel_type, parcel_description, num_items, weight,
-      delivery_type, cod_amount, delivery_charge, payment_status,
-      special_instructions, estimated_delivery, notes,
-      assigned_pickup_staff_id, assigned_delivery_staff_id
+      client_id, tracking_number, sender_name, sender_phone, sender_email,
+      sender_address, receiver_name, receiver_phone, receiver_email, receiver_address,
+      pickup_address, delivery_address, origin, destination,
+      parcel_type, parcel_description, num_items, weight, delivery_type,
+      cod_amount, delivery_charge, payment_status, special_instructions,
+      estimated_delivery, notes, status
     } = req.body;
 
     const result = await query(`
-      INSERT INTO shipments (
-        tracking_number, sender_name, sender_phone, sender_email, sender_address,
-        receiver_name, receiver_phone, receiver_email, receiver_address,
-        origin, destination, parcel_type, parcel_description, num_items, weight,
-        delivery_type, cod_amount, delivery_charge, payment_status,
-        special_instructions, estimated_delivery, notes,
-        assigned_pickup_staff_id, assigned_delivery_staff_id
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
+      INSERT INTO shipments (client_id, tracking_number, sender_name, sender_phone,
+        sender_email, sender_address, receiver_name, receiver_phone, receiver_email,
+        receiver_address, pickup_address, delivery_address, origin, destination,
+        parcel_type, parcel_description, num_items, weight, delivery_type,
+        cod_amount, delivery_charge, payment_status, special_instructions,
+        estimated_delivery, notes, status)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
       RETURNING *
-    `, [
-      tracking_number, sender_name, sender_phone || null, sender_email || null, sender_address || null,
-      receiver_name, receiver_phone || null, receiver_email || null, receiver_address || null,
-      origin, destination, parcel_type || null, parcel_description || null, num_items || 1, weight || null,
-      delivery_type || null, cod_amount || 0, delivery_charge || 0, payment_status || 'pending',
+    `, [client_id || null, tracking_number, sender_name, sender_phone || null,
+      sender_email || null, sender_address || null, receiver_name, receiver_phone || null,
+      receiver_email || null, receiver_address || null, pickup_address || null,
+      delivery_address || null, origin, destination, parcel_type || null,
+      parcel_description || null, num_items || 1, weight || null, delivery_type || null,
+      cod_amount || 0, delivery_charge || 0, payment_status || 'pending',
       special_instructions || null, estimated_delivery || null, notes || null,
-      assigned_pickup_staff_id || null, assigned_delivery_staff_id || null
+      status || 'pickup_requested'
     ]);
 
     const shipment = result.rows[0];
-
-    await query(`
-      INSERT INTO tracking_events (shipment_id, event_type, status, description)
-      VALUES ($1, 'order_created', 'Order Created', 'Shipment created and registered in system')
-    `, [shipment.id]);
-
-    await query(`
-      INSERT INTO activity_logs (admin_id, action, details)
-      VALUES ($1, 'create_shipment', $2)
-    `, [req.user?.id || null, `Created shipment ${tracking_number}`]);
-
-    if (receiver_email) {
-      sendTrackingEmail(shipment).catch(() => {});
-    }
-
+    await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description)
+      VALUES ($1, 'pickup_requested', 'Pickup Requested', 'Pickup has been requested')`, [shipment.id]);
+    await query(`INSERT INTO activity_logs (admin_id, action, details)
+      VALUES ($1, 'create_shipment', $2)`, [req.user?.id || null, `Created shipment ${tracking_number}`]);
+    if (receiver_email) sendTrackingEmail(shipment).catch(() => {});
     res.status(201).json(shipment);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -209,43 +207,29 @@ router.post('/shipments', async (req, res) => {
 
 router.put('/shipments/:id', async (req, res) => {
   try {
-    const {
-      sender_name, sender_phone, sender_email, sender_address,
-      receiver_name, receiver_phone, receiver_email, receiver_address,
-      origin, destination, parcel_type, parcel_description, num_items, weight,
-      delivery_type, cod_amount, delivery_charge, payment_status,
-      special_instructions, estimated_delivery, notes,
-      assigned_pickup_staff_id, assigned_delivery_staff_id
-    } = req.body;
-
-    const result = await query(`
-      UPDATE shipments SET
-        sender_name=$1, sender_phone=$2, sender_email=$3, sender_address=$4,
-        receiver_name=$5, receiver_phone=$6, receiver_email=$7, receiver_address=$8,
-        origin=$9, destination=$10, parcel_type=$11, parcel_description=$12,
-        num_items=$13, weight=$14, delivery_type=$15, cod_amount=$16,
-        delivery_charge=$17, payment_status=$18, special_instructions=$19,
-        estimated_delivery=$20, notes=$21, assigned_pickup_staff_id=$22,
-        assigned_delivery_staff_id=$23, updated_at=CURRENT_TIMESTAMP
-      WHERE id=$24 RETURNING *
-    `, [
-      sender_name, sender_phone || null, sender_email || null, sender_address || null,
-      receiver_name, receiver_phone || null, receiver_email || null, receiver_address || null,
-      origin, destination, parcel_type || null, parcel_description || null,
-      num_items || 1, weight || null, delivery_type || null,
-      cod_amount || 0, delivery_charge || 0, payment_status || 'pending',
-      special_instructions || null, estimated_delivery || null, notes || null,
-      assigned_pickup_staff_id || null, assigned_delivery_staff_id || null,
-      req.params.id
-    ]);
-
+    const fields = [];
+    const values = [];
+    let idx = 1;
+    for (const key of ['client_id','sender_name','sender_phone','sender_email','sender_address',
+      'receiver_name','receiver_phone','receiver_email','receiver_address',
+      'pickup_address','delivery_address','origin','destination',
+      'parcel_type','parcel_description','num_items','weight','delivery_type',
+      'cod_amount','delivery_charge','payment_status','special_instructions',
+      'estimated_delivery','notes','status','sorting_area',
+      'pickup_driver_id','delivery_rider_id','pickup_scheduled_at']) {
+      if (req.body[key] !== undefined) {
+        fields.push(`${key}=$${idx}`);
+        values.push(req.body[key] === '' ? null : req.body[key]);
+        idx++;
+      }
+    }
+    if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
+    fields.push('updated_at=CURRENT_TIMESTAMP');
+    values.push(req.params.id);
+    const result = await query(`UPDATE shipments SET ${fields.join(', ')} WHERE id=$${idx} RETURNING *`, values);
     if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
-
-    await query(`
-      INSERT INTO activity_logs (admin_id, action, details)
-      VALUES ($1, 'update_shipment', $2)
-    `, [req.user?.id || null, `Updated shipment #${req.params.id}`]);
-
+    await query(`INSERT INTO activity_logs (admin_id, action, details)
+      VALUES ($1, 'update_shipment', $2)`, [req.user?.id || null, `Updated shipment #${req.params.id}`]);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -256,49 +240,48 @@ router.delete('/shipments/:id', async (req, res) => {
   try {
     const result = await query('DELETE FROM shipments WHERE id = $1 RETURNING *', [req.params.id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
-    await query(`
-      INSERT INTO activity_logs (admin_id, action, details)
-      VALUES ($1, 'delete_shipment', $2)
-    `, [req.user?.id || null, `Deleted shipment #${req.params.id}`]);
+    await query(`INSERT INTO activity_logs (admin_id, action, details)
+      VALUES ($1, 'delete_shipment', $2)`, [req.user?.id || null, `Deleted shipment #${req.params.id}`]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── Status Updates ─────────────────────────────────────────────────
+// ─── Status Updates (expanded status list) ──────────────────────────
 router.put('/shipments/:id/status', async (req, res) => {
   try {
-    const { status, description, location, staff_name } = req.body;
+    const { status, description, location, staff_name, receiver_signature, delivery_photo, delivery_remarks } = req.body;
     const validStatuses = [
-      'pending', 'picked_up', 'at_warehouse', 'sorted', 'out_for_delivery',
-      'customer_contacted', 'delivered', 'returned', 'rescheduled', 'failed'
+      'pickup_requested', 'picked_up', 'at_sorting_center', 'sorted', 'out_for_delivery',
+      'customer_contacted', 'delivered', 'failed_delivery', 'returned_to_sender', 'rescheduled'
     ];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
-    }
+    if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
-    const shipment = await query('UPDATE shipments SET status=$1, updated_at=CURRENT_TIMESTAMP WHERE id=$2 RETURNING *', [status, req.params.id]);
+    let extraFields = '';
+    const extraValues = [];
+    if (status === 'delivered') {
+      extraFields = ', delivered_at=CURRENT_TIMESTAMP, delivered_by=$7, receiver_signature=$8, delivery_photo=$9, delivery_remarks=$10';
+      extraValues.push(staff_name || req.user?.username || null, receiver_signature || null, delivery_photo || null, delivery_remarks || null);
+    }
+    if (status === 'picked_up') extraFields = ', pickup_completed_at=CURRENT_TIMESTAMP';
+    if (status === 'returned_to_sender') extraFields = ', delivered_at=CURRENT_TIMESTAMP';
+
+    const shipment = await query(`UPDATE shipments SET status=$1, updated_at=CURRENT_TIMESTAMP${extraFields} WHERE id=$2 RETURNING *`,
+      [status, req.params.id, ...extraValues]);
     if (!shipment.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
 
-    const eventType = status;
     const statusLabel = status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description, location, staff_name)
+      VALUES ($1, $2, $3, $4, $5, $6)`,
+      [req.params.id, status, statusLabel, description || statusLabel, location || null, staff_name || null]);
+    await query(`INSERT INTO activity_logs (admin_id, action, details)
+      VALUES ($1, 'update_status', $2)`, [req.user?.id || null, `Updated shipment #${req.params.id} to ${status}`]);
 
-    await query(`
-      INSERT INTO tracking_events (shipment_id, event_type, status, description, location, staff_name)
-      VALUES ($1, $2, $3, $4, $5, $6)
-    `, [req.params.id, eventType, statusLabel, description || statusLabel, location || null, staff_name || null]);
-
-    await query(`
-      INSERT INTO activity_logs (admin_id, action, details)
-      VALUES ($1, 'update_status', $2)
-    `, [req.user?.id || null, `Updated shipment #${req.params.id} to ${status}`]);
-
-    if (shipment.rows[0].receiver_email && ['picked_up', 'at_warehouse', 'out_for_delivery', 'delivered', 'rescheduled', 'failed'].includes(status)) {
-      const events = await query('SELECT * FROM tracking_events WHERE shipment_id = $1 ORDER BY timestamp ASC', [req.params.id]);
-      sendTrackingEmail({ ...shipment.rows[0], events: events.rows }).catch(() => {});
+    const notifyStatuses = ['picked_up', 'at_sorting_center', 'out_for_delivery', 'delivered', 'rescheduled', 'failed_delivery'];
+    if (shipment.rows[0].receiver_email && notifyStatuses.includes(status)) {
+      sendTrackingEmail({ ...shipment.rows[0], status }).catch(() => {});
     }
-
     res.json(shipment.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -311,33 +294,20 @@ router.post('/shipments/:id/delivery-attempt', async (req, res) => {
     const { reason, custom_note, attempted_by } = req.body;
     const shipment = await query('SELECT * FROM shipments WHERE id = $1', [req.params.id]);
     if (!shipment.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
-
     const attemptCount = await query('SELECT COUNT(*) FROM delivery_attempts WHERE shipment_id = $1', [req.params.id]);
     const attemptNumber = parseInt(attemptCount.rows[0].count) + 1;
-
-    const result = await query(`
-      INSERT INTO delivery_attempts (shipment_id, attempt_number, status, reason, custom_note, attempted_by)
-      VALUES ($1, $2, 'failed', $3, $4, $5) RETURNING *
-    `, [req.params.id, attemptNumber, reason, custom_note || null, attempted_by || null]);
-
-    await query(`
-      INSERT INTO tracking_events (shipment_id, event_type, status, description, staff_name)
-      VALUES ($1, 'delivery_attempt', 'Delivery Attempt ' || $2, $3, $4)
-    `, [req.params.id, attemptNumber, reason + (custom_note ? ': ' + custom_note : ''), attempted_by || null]);
-
-    // Auto-notify if failed after 3+ attempts
+    const result = await query(`INSERT INTO delivery_attempts (shipment_id, attempt_number, status, reason, custom_note, attempted_by)
+      VALUES ($1, $2, 'failed', $3, $4, $5) RETURNING *`,
+      [req.params.id, attemptNumber, reason, custom_note || null, attempted_by || null]);
+    await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description, staff_name)
+      VALUES ($1, 'delivery_attempt', 'Delivery Attempt ' || $2, $3, $4)`,
+      [req.params.id, attemptNumber, reason + (custom_note ? ': ' + custom_note : ''), attempted_by || null]);
     if (attemptNumber >= 3) {
-      await query(`
-        INSERT INTO tracking_events (shipment_id, event_type, status, description)
-        VALUES ($1, 'storage_charges', 'Storage Charges May Apply', 'Delivery failed after multiple attempts. Storage or re-delivery charges may apply per company policy.')
-      `, [req.params.id]);
+      await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description)
+        VALUES ($1, 'storage_charges', 'Storage Charges May Apply', 'Delivery failed after multiple attempts')`, [req.params.id]);
     }
-
-    await query(`
-      INSERT INTO activity_logs (admin_id, action, details)
-      VALUES ($1, 'delivery_attempt', $2)
-    `, [req.user?.id || null, `Delivery attempt #${attemptNumber} for shipment #${req.params.id}: ${reason}`]);
-
+    await query(`INSERT INTO activity_logs (admin_id, action, details)
+      VALUES ($1, 'delivery_attempt', $2)`, [req.user?.id || null, `Delivery attempt #${attemptNumber} for #${req.params.id}: ${reason}`]);
     res.status(201).json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -359,10 +329,316 @@ router.post('/shipments/:id/resend-email', async (req, res) => {
   }
 });
 
-// ─── Delivery Staff Management ──────────────────────────────────────
+// ─── Clients CRUD ───────────────────────────────────────────────────
+router.get('/clients', async (req, res) => {
+  try {
+    const { search } = req.query;
+    let sql = 'SELECT * FROM clients WHERE 1=1';
+    const params = [];
+    if (search) {
+      sql += ' AND (company_name ILIKE $1 OR contact_person ILIKE $1 OR phone ILIKE $1 OR email ILIKE $1)';
+      params.push(`%${search}%`);
+    }
+    sql += ' ORDER BY created_at DESC';
+    const result = await query(sql, params);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/clients', async (req, res) => {
+  try {
+    const { client_type, company_name, contact_person, phone, email, address, billing_address } = req.body;
+    const result = await query(`INSERT INTO clients (client_type, company_name, contact_person, phone, email, address, billing_address)
+      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [client_type || 'individual', company_name || null, contact_person, phone, email || null, address || null, billing_address || null]);
+    await query(`INSERT INTO activity_logs (admin_id, action, details)
+      VALUES ($1, 'create_client', $2)`, [req.user?.id || null, `Created client: ${contact_person}`]);
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/clients/:id', async (req, res) => {
+  try {
+    const { client_type, company_name, contact_person, phone, email, address, billing_address, is_active } = req.body;
+    const result = await query(`UPDATE clients SET client_type=$1, company_name=$2, contact_person=$3, phone=$4, email=$5, address=$6, billing_address=$7, is_active=$8, updated_at=CURRENT_TIMESTAMP WHERE id=$9 RETURNING *`,
+      [client_type || 'individual', company_name || null, contact_person, phone, email || null, address || null, billing_address || null, is_active !== undefined ? is_active : true, req.params.id]);
+    if (!result.rows[0]) return res.status(404).json({ error: 'Client not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/clients/:id', async (req, res) => {
+  try {
+    const result = await query('DELETE FROM clients WHERE id = $1 RETURNING *', [req.params.id]);
+    if (!result.rows[0]) return res.status(404).json({ error: 'Client not found' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Client Login Creation ──────────────────────────────────────────
+router.post('/clients/:id/create-login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const client = await query('SELECT * FROM clients WHERE id = $1', [req.params.id]);
+    if (!client.rows[0]) return res.status(404).json({ error: 'Client not found' });
+    const existing = await query('SELECT id FROM client_users WHERE username = $1', [username]);
+    if (existing.rows[0]) return res.status(400).json({ error: 'Username already taken' });
+    const password_hash = await bcrypt.hash(password, 10);
+    const result = await query(`INSERT INTO client_users (client_id, username, password_hash) VALUES ($1, $2, $3) RETURNING id, username`,
+      [req.params.id, username, password_hash]);
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Pickup Management ──────────────────────────────────────────────
+router.get('/pickups', async (req, res) => {
+  try {
+    const { status } = req.query;
+    let sql = `SELECT s.*, d.name AS driver_name, d.phone AS driver_phone
+      FROM shipments s LEFT JOIN delivery_staff d ON s.pickup_driver_id = d.id
+      WHERE s.status IN ('pickup_requested','picked_up')`;
+    const params = [];
+    if (status) { sql += ' AND s.status = $1'; params.push(status); }
+    sql += ' ORDER BY s.created_at DESC';
+    const result = await query(sql, params.length ? params : undefined);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/pickups/:id/assign', async (req, res) => {
+  try {
+    const { driver_id, scheduled_at } = req.body;
+    const result = await query(`UPDATE shipments SET pickup_driver_id=$1, pickup_scheduled_at=$2, updated_at=CURRENT_TIMESTAMP WHERE id=$3 RETURNING *`,
+      [driver_id || null, scheduled_at || null, req.params.id]);
+    if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
+    if (driver_id) {
+      const driver = await query('SELECT name FROM delivery_staff WHERE id = $1', [driver_id]);
+      await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description, staff_name)
+        VALUES ($1, 'driver_assigned', 'Driver Assigned', $2, $3)`,
+        [req.params.id, `Pickup driver assigned: ${driver.rows[0]?.name || ''}`, driver.rows[0]?.name || null]);
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Sorting ────────────────────────────────────────────────────────
+router.get('/sorting', async (req, res) => {
+  try {
+    const { area } = req.query;
+    let sql = `SELECT s.*, d.name AS rider_name
+      FROM shipments s LEFT JOIN delivery_staff d ON s.delivery_rider_id = d.id
+      WHERE s.status IN ('at_sorting_center','sorted')`;
+    const params = [];
+    if (area) { sql += ' AND s.sorting_area ILIKE $1'; params.push(`%${area}%`); }
+    sql += ' ORDER BY s.updated_at DESC';
+    const result = await query(sql, params.length ? params : undefined);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/sorting/:id/assign', async (req, res) => {
+  try {
+    const { rider_id, sorting_area } = req.body;
+    const result = await query(`UPDATE shipments SET delivery_rider_id=$1, sorting_area=$2, status='sorted', updated_at=CURRENT_TIMESTAMP WHERE id=$3 RETURNING *`,
+      [rider_id || null, sorting_area || null, req.params.id]);
+    if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
+    await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description)
+      VALUES ($1, 'sorted', 'Sorted', $2)`,
+      [req.params.id, sorting_area ? `Sorted for area: ${sorting_area}` : 'Sorted and ready for delivery']);
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Delivery Management ────────────────────────────────────────────
+router.get('/deliveries', async (req, res) => {
+  try {
+    const { status } = req.query;
+    let sql = `SELECT s.*, d.name AS rider_name, d.phone AS rider_phone
+      FROM shipments s LEFT JOIN delivery_staff d ON s.delivery_rider_id = d.id
+      WHERE s.status IN ('out_for_delivery','delivered','failed_delivery','rescheduled')`;
+    const params = [];
+    if (status) { sql += ' AND s.status = $1'; params.push(status); }
+    sql += ' ORDER BY s.updated_at DESC';
+    const result = await query(sql, params.length ? params : undefined);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/deliveries/:id/complete', async (req, res) => {
+  try {
+    const { receiver_name, signature, delivery_photo, remarks } = req.body;
+    const result = await query(`UPDATE shipments SET status='delivered', receiver_signature=$1, delivery_photo=$2, delivery_remarks=$3, delivered_by=$4, delivered_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=$5 RETURNING *`,
+      [signature || null, delivery_photo || null, remarks || null, receiver_name || null, req.params.id]);
+    if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
+    await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description, staff_name)
+      VALUES ($1, 'delivered', 'Delivered', $2, $3)`,
+      [req.params.id, remarks ? `Delivered successfully. Remarks: ${remarks}` : 'Delivered successfully', receiver_name || null]);
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── COD Management ─────────────────────────────────────────────────
+router.get('/cod', async (req, res) => {
+  try {
+    const { rider_id, status } = req.query;
+    let sql = `SELECT cs.*, s.tracking_number, s.receiver_name, s.cod_amount AS shipment_cod,
+      d.name AS rider_name FROM cod_settlements cs
+      JOIN shipments s ON cs.shipment_id = s.id
+      LEFT JOIN delivery_staff d ON cs.rider_id = d.id
+      WHERE 1=1`;
+    const params = [];
+    let idx = 1;
+    if (rider_id) { sql += ` AND cs.rider_id = $${idx}`; params.push(rider_id); idx++; }
+    if (status) { sql += ` AND cs.status = $${idx}`; params.push(status); idx++; }
+    sql += ' ORDER BY cs.created_at DESC';
+    const result = await query(sql, params);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/cod/settle', async (req, res) => {
+  try {
+    const { rider_id, shipment_id, collected_amount, notes } = req.body;
+    const shipment = await query('SELECT * FROM shipments WHERE id = $1', [shipment_id]);
+    if (!shipment.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
+    const existing = await query('SELECT id FROM cod_settlements WHERE shipment_id = $1', [shipment_id]);
+    if (existing.rows[0]) return res.status(400).json({ error: 'Already settled for this shipment' });
+    const result = await query(`INSERT INTO cod_settlements (shipment_id, rider_id, cod_amount, collected_amount, settled_amount, status, collected_at, notes)
+      VALUES ($1, $2, $3, $4, $4, 'settled', CURRENT_TIMESTAMP, $5) RETURNING *`,
+      [shipment_id, rider_id || null, shipment.rows[0].cod_amount, collected_amount || shipment.rows[0].cod_amount, notes || null]);
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/cod/summary', async (req, res) => {
+  try {
+    const riders = await query(`SELECT d.id, d.name, d.phone,
+      COALESCE(SUM(s.cod_amount), 0) AS total_cod,
+      COALESCE(SUM(cs.collected_amount), 0) AS total_collected,
+      COUNT(s.id) FILTER (WHERE s.payment_status = 'cod') AS cod_shipments
+      FROM delivery_staff d
+      LEFT JOIN shipments s ON (s.delivery_rider_id = d.id OR s.pickup_driver_id = d.id) AND s.payment_status = 'cod'
+      LEFT JOIN cod_settlements cs ON cs.rider_id = d.id
+      WHERE d.role IN ('pickup_driver','delivery_rider')
+      GROUP BY d.id, d.name, d.phone ORDER BY d.name`);
+    res.json(riders.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Daily Reports ──────────────────────────────────────────────────
+router.get('/reports/daily', async (req, res) => {
+  try {
+    const { date } = req.query;
+    const d = date || 'CURRENT_DATE';
+    const result = await query(`
+      SELECT
+        COUNT(*) FILTER (WHERE status IN ('pickup_requested','picked_up')) AS total_pickups,
+        COUNT(*) FILTER (WHERE status = 'delivered') AS total_delivered,
+        COUNT(*) FILTER (WHERE status IN ('pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery')) AS pending_parcels,
+        COUNT(*) FILTER (WHERE status = 'failed_delivery') AS failed_deliveries,
+        COUNT(*) FILTER (WHERE status = 'returned_to_sender') AS returned_parcels,
+        COALESCE(SUM(cod_amount) FILTER (WHERE payment_status = 'cod'), 0) AS total_cod,
+        COALESCE(SUM(delivery_charge), 0) AS total_charges
+      FROM shipments WHERE DATE(created_at) = ${d}
+    `);
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/reports/monthly', async (req, res) => {
+  try {
+    const { year, month } = req.query;
+    const y = year || 'EXTRACT(YEAR FROM CURRENT_DATE)';
+    const m = month || 'EXTRACT(MONTH FROM CURRENT_DATE)';
+    const result = await query(`
+      SELECT
+        DATE(created_at) AS day,
+        COUNT(*) AS total,
+        COUNT(*) FILTER (WHERE status = 'delivered') AS delivered,
+        COALESCE(SUM(delivery_charge), 0) AS revenue,
+        COALESCE(SUM(cod_amount) FILTER (WHERE payment_status = 'cod'), 0) AS cod_total
+      FROM shipments
+      WHERE EXTRACT(YEAR FROM created_at) = ${y} AND EXTRACT(MONTH FROM created_at) = ${m}
+      GROUP BY DATE(created_at) ORDER BY day
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/reports/rider-performance', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    let where = '';
+    const params = [];
+    if (startDate && endDate) { where = ' WHERE s.delivered_at >= $1 AND s.delivered_at <= $2'; params.push(startDate, endDate); }
+    const result = await query(`
+      SELECT d.id, d.name, d.phone, d.role,
+        COUNT(s.id) FILTER (WHERE s.status = 'delivered') AS deliveries_completed,
+        COUNT(s.id) FILTER (WHERE s.status = 'failed_delivery') AS deliveries_failed,
+        COUNT(s.id) AS total_assigned,
+        COALESCE(SUM(s.cod_amount) FILTER (WHERE s.payment_status = 'cod' AND s.status = 'delivered'), 0) AS cod_collected
+      FROM delivery_staff d
+      LEFT JOIN shipments s ON s.delivery_rider_id = d.id OR s.pickup_driver_id = d.id
+      ${where}
+      GROUP BY d.id, d.name, d.phone, d.role ORDER BY deliveries_completed DESC
+    `, params);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/reports/export', async (req, res) => {
+  try {
+    const { startDate, endDate, format } = req.query;
+    let sql = `SELECT s.*, c.company_name AS client_name FROM shipments s LEFT JOIN clients c ON s.client_id = c.id WHERE 1=1`;
+    const params = [];
+    if (startDate) { sql += ' AND s.created_at >= $1'; params.push(startDate); }
+    if (endDate) { sql += ' AND s.created_at <= $2'; params.push(endDate); }
+    sql += ' ORDER BY s.created_at DESC';
+    const result = await query(sql, params.length ? params : undefined);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Delivery Staff Management (with role) ──────────────────────────
 router.get('/staff', async (req, res) => {
   try {
-    const result = await query('SELECT id, name, phone, email, username, is_active, created_at FROM delivery_staff ORDER BY name');
+    const result = await query('SELECT id, name, phone, email, username, role, is_active, created_at FROM delivery_staff ORDER BY name');
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -371,16 +647,13 @@ router.get('/staff', async (req, res) => {
 
 router.post('/staff', async (req, res) => {
   try {
-    const { name, phone, email, username, password } = req.body;
+    const { name, phone, email, username, password, role } = req.body;
     const password_hash = await bcrypt.hash(password, 10);
-    const result = await query(`
-      INSERT INTO delivery_staff (name, phone, email, username, password_hash)
-      VALUES ($1, $2, $3, $4, $5) RETURNING id, name, phone, email, username, is_active, created_at
-    `, [name, phone, email || null, username, password_hash]);
-    await query(`
-      INSERT INTO activity_logs (admin_id, action, details)
-      VALUES ($1, 'create_staff', $2)
-    `, [req.user?.id || null, `Created delivery staff: ${name}`]);
+    const result = await query(`INSERT INTO delivery_staff (name, phone, email, username, password_hash, role)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, phone, email, username, role, is_active, created_at`,
+      [name, phone, email || null, username, password_hash, role || 'delivery_rider']);
+    await query(`INSERT INTO activity_logs (admin_id, action, details)
+      VALUES ($1, 'create_staff', $2)`, [req.user?.id || null, `Created staff: ${name} (${role || 'delivery_rider'})`]);
     res.status(201).json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -389,11 +662,10 @@ router.post('/staff', async (req, res) => {
 
 router.put('/staff/:id', async (req, res) => {
   try {
-    const { name, phone, email, username, is_active } = req.body;
-    const result = await query(`
-      UPDATE delivery_staff SET name=$1, phone=$2, email=$3, username=$4, is_active=$5
-      WHERE id=$6 RETURNING id, name, phone, email, username, is_active, created_at
-    `, [name, phone, email || null, username, is_active !== undefined ? is_active : true, req.params.id]);
+    const { name, phone, email, username, role, is_active } = req.body;
+    const result = await query(`UPDATE delivery_staff SET name=$1, phone=$2, email=$3, username=$4, role=$5, is_active=$6 WHERE id=$7
+      RETURNING id, name, phone, email, username, role, is_active, created_at`,
+      [name, phone, email || null, username, role || 'delivery_rider', is_active !== undefined ? is_active : true, req.params.id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Staff not found' });
     res.json(result.rows[0]);
   } catch (err) {

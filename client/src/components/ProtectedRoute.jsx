@@ -11,3 +11,9 @@ export function StaffRoute({ children }) {
   if (!token) return <Navigate to="/staff" replace />;
   return children;
 }
+
+export function ClientRoute({ children }) {
+  const token = sessionStorage.getItem('client_token');
+  if (!token) return <Navigate to="/client" replace />;
+  return children;
+}
