@@ -10,7 +10,7 @@ export default function ClientDashboard() {
   const [invoices, setInvoices] = useState([]);
   const [trackingDetail, setTrackingDetail] = useState(null);
   const [loadingTracking, setLoadingTracking] = useState(false);
-  const [form, setForm] = useState({ sender_name: '', sender_phone: '', sender_address: '', receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: 'document', parcel_description: '', weight: '', delivery_type: 'standard', cod_amount: '' });
+  const [form, setForm] = useState({ sender_name: '', sender_phone: '', sender_address: '', receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: '', parcel_description: '', weight: '', delivery_type: '', cod_amount: '' });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [profileForm, setProfileForm] = useState({ company_name: '', contact_person: '', phone: '', email: '', address: '' });
@@ -72,7 +72,7 @@ export default function ClientDashboard() {
       });
       if (!res.ok) { const d = await res.json(); alert(d.error); return; }
       setSubmitted(true);
-      setForm({ sender_name: '', sender_phone: '', sender_address: '', receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: 'document', parcel_description: '', weight: '', delivery_type: 'standard', cod_amount: '' });
+      setForm({ sender_name: '', sender_phone: '', sender_address: '', receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: '', parcel_description: '', weight: '', delivery_type: '', cod_amount: '' });
       fetchShipments();
     } catch (err) { alert(err.message); } finally { setSubmitting(false); }
   };
@@ -214,7 +214,7 @@ export default function ClientDashboard() {
           {submitted ? (
             <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
               <h3 className="text-lg font-bold text-green-800 mb-2">Pickup Request Submitted!</h3>
-              <p className="text-green-600 text-sm mb-4">Your tracking number has been generated. We'll contact you shortly.</p>
+              <p className="text-green-600 text-sm mb-4">We'll contact you shortly to confirm your pickup.</p>
               <button onClick={() => setSubmitted(false)} className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">Request Another</button>
             </div>
           ) : (
@@ -247,14 +247,7 @@ export default function ClientDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Parcel Type</label>
-                  <select value={form.parcel_type} onChange={(e) => setForm({...form, parcel_type: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
-                    <option value="document">Document</option>
-                    <option value="package">Package</option>
-                    <option value="fragile">Fragile</option>
-                    <option value="electronics">Electronics</option>
-                    <option value="food">Food/Perishable</option>
-                    <option value="other">Other</option>
-                  </select>
+                  <input type="text" placeholder="e.g. Document, Package" value={form.parcel_type} onChange={(e) => setForm({...form, parcel_type: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
@@ -262,15 +255,11 @@ export default function ClientDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Type</label>
-                  <select value={form.delivery_type} onChange={(e) => setForm({...form, delivery_type: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
-                    <option value="standard">Standard</option>
-                    <option value="express">Express</option>
-                    <option value="same_day">Same Day</option>
-                  </select>
+                  <input type="text" placeholder="e.g. Standard, Express" value={form.delivery_type} onChange={(e) => setForm({...form, delivery_type: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">COD Amount (LKR)</label>
-                  <input type="number" step="0.01" value={form.cod_amount} onChange={(e) => setForm({...form, cod_amount: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                  <input type="text" inputMode="decimal" placeholder="0.00" value={form.cod_amount} onChange={(e) => setForm({...form, cod_amount: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
                 </div>
               </div>
               <button type="submit" disabled={submitting} className="px-6 py-2.5 bg-teal-500 text-white rounded-lg hover:bg-teal-600 text-sm font-semibold">

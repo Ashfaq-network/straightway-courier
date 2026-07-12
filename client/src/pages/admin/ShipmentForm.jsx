@@ -6,8 +6,8 @@ const defaultForm = {
   client_id: '', sender_name: '', sender_phone: '', sender_email: '', sender_address: '',
   receiver_name: '', receiver_phone: '', receiver_email: '', receiver_address: '',
   pickup_address: '', delivery_address: '', origin: '', destination: '',
-  parcel_type: 'document', parcel_description: '', num_items: 1, weight: '',
-  delivery_type: 'standard', cod_amount: 0, delivery_charge: 0, payment_status: 'pending',
+  parcel_type: '', parcel_description: '', num_items: 1, weight: '',
+  delivery_type: '', cod_amount: '', delivery_charge: '', payment_status: 'pending',
   special_instructions: '', tracking_number: '', status: 'pickup_requested',
   estimated_delivery: '', notes: '',
   assigned_pickup_staff_id: '', assigned_delivery_staff_id: '',
@@ -54,7 +54,7 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
   };
 
   const handleChange = (field) => (e) => {
-    const val = e.target.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value;
+    const val = e.target.type === 'number' ? (e.target.value === '' ? '' : parseFloat(e.target.value)) : e.target.value;
     setForm({ ...form, [field]: val });
   };
 
@@ -72,16 +72,11 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
       {error && <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4"><p className="text-red-700 text-sm">{error}</p></div>}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Tracking Number */}
-        {!isEdit && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tracking Number</label>
-            <div className="flex gap-2">
-              <input type="text" value={form.tracking_number} onChange={handleChange('tracking_number')}
-                placeholder="Auto-generated (SW0001)" className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
-              <button type="button" onClick={generateTracking} className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium">Generate</button>
-            </div>
-          </div>
-        )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Tracking Number *</label>
+          <input type="text" required value={form.tracking_number} onChange={handleChange('tracking_number')}
+            placeholder="Enter tracking number (e.g. SW0001)" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        </div>
 
         {/* Client */}
         <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
@@ -136,16 +131,11 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
         <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
           <h3 className="font-semibold text-gray-900 mb-4 text-sm uppercase tracking-wider">Parcel Details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Type</label><select value={form.parcel_type} onChange={handleChange('parcel_type')} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg">
-              <option value="document">Document</option><option value="package">Package</option><option value="fragile">Fragile</option>
-              <option value="electronics">Electronics</option><option value="food">Food/Perishable</option><option value="other">Other</option>
-            </select></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Type</label><input type="text" value={form.parcel_type} onChange={handleChange('parcel_type')} placeholder="e.g. Document, Package" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Items</label><input type="number" min="1" value={form.num_items} onChange={handleChange('num_items')} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Weight</label><input type="text" placeholder="e.g. 2 kg" value={form.weight} onChange={handleChange('weight')} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg" /></div>
             <div className="sm:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><input type="text" placeholder="Describe contents" value={form.parcel_description} onChange={handleChange('parcel_description')} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Delivery Type</label><select value={form.delivery_type} onChange={handleChange('delivery_type')} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg">
-              <option value="standard">Standard</option><option value="express">Express</option><option value="same_day">Same Day</option><option value="international">International</option>
-            </select></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Delivery Type</label><input type="text" value={form.delivery_type} onChange={handleChange('delivery_type')} placeholder="e.g. Standard, Express" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg" /></div>
           </div>
         </div>
 
@@ -153,8 +143,8 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
         <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
           <h3 className="font-semibold text-gray-900 mb-4 text-sm uppercase tracking-wider">Financial</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Charge (LKR)</label><input type="number" step="0.01" value={form.delivery_charge} onChange={handleChange('delivery_charge')} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">COD Amount (LKR)</label><input type="number" step="0.01" value={form.cod_amount} onChange={handleChange('cod_amount')} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Charge (LKR)</label><input type="text" inputMode="decimal" value={form.delivery_charge} onChange={handleChange('delivery_charge')} placeholder="0.00" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">COD Amount (LKR)</label><input type="text" inputMode="decimal" value={form.cod_amount} onChange={handleChange('cod_amount')} placeholder="0.00" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Payment</label><select value={form.payment_status} onChange={handleChange('payment_status')} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg">
               <option value="pending">Pending</option><option value="paid">Paid</option><option value="cod">Cash on Delivery</option><option value="partial">Partial</option>
             </select></div>

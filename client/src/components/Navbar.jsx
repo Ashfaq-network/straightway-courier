@@ -3,12 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const links = [
-  { to: '/', label: 'Home' },
   { to: '/track', label: 'Track' },
-  { to: '/services', label: 'Services' },
-  { to: '/about', label: 'About' },
-  { to: '/faqs', label: 'FAQs' },
-  { to: '/contact', label: 'Contact' },
 ];
 
 export default function Navbar() {
