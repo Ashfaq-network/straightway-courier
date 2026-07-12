@@ -31,17 +31,11 @@ router.post('/login', async (req, res) => {
 
 router.use(requireAdmin);
 
-// ─── Generate Tracking Number ───────────────────────────────────────
+// ─── Generate Tracking Number (atomic sequence) ─────────────────────
 router.get('/generate-tracking', async (req, res) => {
   try {
-    const last = await query("SELECT tracking_number FROM shipments WHERE tracking_number LIKE 'SW%' ORDER BY id DESC LIMIT 1");
-    let num = 1;
-    if (last.rows[0]) {
-      const match = last.rows[0].tracking_number.match(/SW(\d+)/);
-      if (match) num = parseInt(match[1]) + 1;
-    }
-    const tn = `SW${String(num).padStart(4, '0')}`;
-    res.json({ tracking_number: tn });
+    const seq = await query("SELECT 'SW' || LPAD(NEXTVAL('tracking_number_seq')::text, 4, '0') AS tn");
+    res.json({ tracking_number: seq.rows[0].tn });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -172,6 +166,12 @@ router.post('/shipments', async (req, res) => {
       cod_amount, delivery_charge, payment_status, special_instructions,
       estimated_delivery, notes, status
     } = req.body;
+
+    if (!sender_name || !sender_name.trim()) return res.status(400).json({ error: 'Sender name is required' });
+    if (!receiver_name || !receiver_name.trim()) return res.status(400).json({ error: 'Receiver name is required' });
+    if (!origin || !origin.trim()) return res.status(400).json({ error: 'Origin is required' });
+    if (!destination || !destination.trim()) return res.status(400).json({ error: 'Destination is required' });
+    if (!tracking_number || !tracking_number.trim()) return res.status(400).json({ error: 'Tracking number is required' });
 
     const result = await query(`
       INSERT INTO shipments (client_id, tracking_number, sender_name, sender_phone,
@@ -349,6 +349,8 @@ router.get('/clients', async (req, res) => {
 router.post('/clients', async (req, res) => {
   try {
     const { client_type, company_name, contact_person, phone, email, address, billing_address } = req.body;
+    if (!contact_person || !contact_person.trim()) return res.status(400).json({ error: 'Contact person is required' });
+    if (!phone || !phone.trim()) return res.status(400).json({ error: 'Phone is required' });
     const result = await query(`INSERT INTO clients (client_type, company_name, contact_person, phone, email, address, billing_address)
       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
       [client_type || 'individual', company_name || null, contact_person, phone, email || null, address || null, billing_address || null]);
@@ -657,6 +659,10 @@ router.get('/staff', async (req, res) => {
 router.post('/staff', async (req, res) => {
   try {
     const { name, phone, email, username, password, role } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+    if (!phone || !phone.trim()) return res.status(400).json({ error: 'Phone is required' });
+    if (!username || !username.trim()) return res.status(400).json({ error: 'Username is required' });
+    if (!password || password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
     const password_hash = await bcrypt.hash(password, 10);
     const result = await query(`INSERT INTO delivery_staff (name, phone, email, username, password_hash, role)
       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, phone, email, username, role, is_active, created_at`,
@@ -684,7 +690,8 @@ router.put('/staff/:id', async (req, res) => {
 
 router.delete('/staff/:id', async (req, res) => {
   try {
-    await query('DELETE FROM delivery_staff WHERE id = $1', [req.params.id]);
+    const result = await query('DELETE FROM delivery_staff WHERE id = $1 RETURNING *', [req.params.id]);
+    if (!result.rows[0]) return res.status(404).json({ error: 'Staff member not found' });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -713,7 +720,8 @@ router.get('/messages', async (req, res) => {
 
 router.delete('/messages/:id', async (req, res) => {
   try {
-    await query('DELETE FROM contact_messages WHERE id = $1', [req.params.id]);
+    const result = await query('DELETE FROM contact_messages WHERE id = $1 RETURNING *', [req.params.id]);
+    if (!result.rows[0]) return res.status(404).json({ error: 'Message not found' });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

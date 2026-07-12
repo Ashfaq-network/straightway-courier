@@ -17,6 +17,8 @@ router.post('/login', async (req, res) => {
     }
 
     const { username, password } = req.body;
+    if (!username || !username.trim()) return res.status(400).json({ error: 'Username is required' });
+    if (!password) return res.status(400).json({ error: 'Password is required' });
     const result = await query('SELECT * FROM delivery_staff WHERE username = $1 AND is_active = true', [username]);
     const staff = result.rows[0];
     if (!staff || !(await bcrypt.compare(password, staff.password_hash))) {
@@ -65,6 +67,7 @@ router.put('/shipments/:id/status', async (req, res) => {
       'pickup_requested', 'picked_up', 'at_sorting_center', 'sorted', 'out_for_delivery',
       'customer_contacted', 'delivered', 'failed_delivery', 'returned_to_sender', 'rescheduled'
     ];
+    if (!status) return res.status(400).json({ error: 'Status is required' });
     if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
     const existing = await query('SELECT * FROM shipments WHERE id = $1', [req.params.id]);

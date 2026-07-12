@@ -51,8 +51,11 @@ router.get('/profile', async (req, res) => {
 router.put('/profile', async (req, res) => {
   try {
     const { company_name, contact_person, phone, email, address } = req.body;
+    if (!contact_person || !contact_person.trim()) return res.status(400).json({ error: 'Contact person is required' });
+    if (!phone || !phone.trim()) return res.status(400).json({ error: 'Phone is required' });
     const result = await query(`UPDATE clients SET company_name=$1, contact_person=$2, phone=$3, email=$4, address=$5, updated_at=CURRENT_TIMESTAMP WHERE id=$6 RETURNING *`,
       [company_name || null, contact_person, phone, email || null, address || null, req.client.client_id]);
+    if (!result.rows[0]) return res.status(404).json({ error: 'Client not found' });
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -63,14 +66,11 @@ router.post('/pickup-request', async (req, res) => {
   try {
     const { sender_name, sender_phone, sender_address, receiver_name, receiver_phone,
       receiver_address, parcel_type, parcel_description, weight, delivery_type, cod_amount } = req.body;
+    if (!sender_name || !sender_name.trim()) return res.status(400).json({ error: 'Sender name is required' });
+    if (!receiver_name || !receiver_name.trim()) return res.status(400).json({ error: 'Receiver name is required' });
 
-    const tnResult = await query("SELECT tracking_number FROM shipments WHERE tracking_number LIKE 'SW%' ORDER BY id DESC LIMIT 1");
-    let num = 1;
-    if (tnResult.rows[0]) {
-      const match = tnResult.rows[0].tracking_number.match(/SW(\d+)/);
-      if (match) num = parseInt(match[1]) + 1;
-    }
-    const tracking_number = `SW${String(num).padStart(4, '0')}`;
+    const seq = await query("SELECT 'SW' || LPAD(NEXTVAL('tracking_number_seq')::text, 4, '0') AS tn");
+    const tracking_number = seq.rows[0].tn;
 
     const result = await query(`INSERT INTO shipments (client_id, tracking_number, sender_name, sender_phone,
       sender_address, receiver_name, receiver_phone, receiver_address, origin, destination,

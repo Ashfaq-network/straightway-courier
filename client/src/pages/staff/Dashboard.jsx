@@ -84,23 +84,23 @@ export default function StaffDashboard() {
   const isPickupDriver = profile?.role === 'pickup_driver';
   const isDeliveryRider = profile?.role === 'delivery_rider';
 
-  const PickupForm = ({ s }) => {
+    const PickupForm = ({ s }) => {
     const [location, setLocation] = useState(s.pickup_address || s.sender_address || '');
     const [desc, setDesc] = useState('Parcel collected from sender');
     return (
-      <div className="flex flex-col gap-2 w-full sm:w-72">
+      <div className="flex flex-col gap-2 w-full sm:w-80">
         <p className="text-xs font-semibold text-amber-600 mb-1">Complete Pickup</p>
         <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Pickup location"
-          className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg" />
+          className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
         <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description"
-          className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg" />
-        <div className="flex gap-1">
+          className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
+        <div className="flex gap-2">
           <button onClick={() => handleStatusUpdate(s.id, 'picked_up', { location, description: desc })}
             disabled={doingAction === s.id}
-            className="flex-1 px-3 py-1.5 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 disabled:opacity-50">
+            className="flex-1 px-4 py-2.5 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 disabled:opacity-50 touch-manipulation">
             {doingAction === s.id ? 'Updating...' : 'Confirm Pickup'}
           </button>
-          <button onClick={() => setSelectedShipment(null)} className="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded-lg">Cancel</button>
+          <button onClick={() => setSelectedShipment(null)} className="px-4 py-2.5 bg-gray-200 text-gray-700 text-sm rounded-lg touch-manipulation">Cancel</button>
         </div>
       </div>
     );
@@ -118,21 +118,21 @@ export default function StaffDashboard() {
 
     if (step === 'deliver') {
       return (
-        <div className="flex flex-col gap-2 w-full sm:w-80">
+        <div className="flex flex-col gap-3 w-full sm:w-80">
           <p className="text-xs font-semibold text-green-600 mb-1">Complete Delivery</p>
           <input value={signature} onChange={e => setSignature(e.target.value)} placeholder="Receiver name (signature)"
-            className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg" />
+            className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
           <input value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} placeholder="Delivery photo URL (optional)"
-            className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg" />
+            className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
           <input value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Delivery remarks (optional)"
-            className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg" />
-          <div className="flex gap-1">
+            className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
+          <div className="flex gap-2">
             <button onClick={() => handleStatusUpdate(s.id, 'delivered', { location, description: desc || 'Delivered successfully', receiver_signature: signature, delivery_photo: photoUrl, delivery_remarks: remarks })}
               disabled={doingAction === s.id || !signature}
-              className="flex-1 px-3 py-1.5 bg-green-500 text-white text-xs font-semibold rounded-lg hover:bg-green-600 disabled:opacity-50">
+              className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-semibold rounded-lg hover:bg-green-600 disabled:opacity-50 touch-manipulation">
               {doingAction === s.id ? 'Saving...' : 'Mark Delivered'}
             </button>
-            <button onClick={() => setStep('options')} className="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded-lg">Back</button>
+            <button onClick={() => setStep('options')} className="px-4 py-2.5 bg-gray-200 text-gray-700 text-sm rounded-lg touch-manipulation">Back</button>
           </div>
         </div>
       );
@@ -140,10 +140,10 @@ export default function StaffDashboard() {
 
     if (step === 'fail') {
       return (
-        <div className="flex flex-col gap-2 w-full sm:w-72">
+        <div className="flex flex-col gap-3 w-full sm:w-80">
           <p className="text-xs font-semibold text-red-600 mb-1">Log Failed Delivery</p>
           <select value={reason} onChange={e => setReason(e.target.value)}
-            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
             <option value="">Select reason...</option>
             <option value="Customer unavailable">Customer unavailable</option>
             <option value="Wrong address">Wrong address</option>
@@ -152,45 +152,45 @@ export default function StaffDashboard() {
             <option value="Other">Other</option>
           </select>
           <input value={note} onChange={e => setNote(e.target.value)} placeholder="Additional notes"
-            className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg" />
-          <div className="flex gap-1">
+            className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
+          <div className="flex gap-2">
             <button onClick={() => handleDeliveryAttempt(s.id, reason, note)}
               disabled={doingAction === s.id || !reason}
-              className="flex-1 px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded-lg hover:bg-red-600 disabled:opacity-50">
+              className="flex-1 px-4 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 disabled:opacity-50 touch-manipulation">
               {doingAction === s.id ? 'Logging...' : 'Log Failed Attempt'}
             </button>
-            <button onClick={() => setStep('options')} className="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs rounded-lg">Back</button>
+            <button onClick={() => setStep('options')} className="px-4 py-2.5 bg-gray-200 text-gray-700 text-sm rounded-lg touch-manipulation">Back</button>
           </div>
         </div>
       );
     }
 
     return (
-      <div className="flex flex-col gap-2 w-full sm:w-72">
+      <div className="flex flex-col gap-3 w-full sm:w-80">
         <p className="text-xs font-semibold text-gray-600 mb-1">Update Delivery Status</p>
         <div className="grid grid-cols-2 gap-2">
           <button onClick={() => handleStatusUpdate(s.id, 'out_for_delivery', { location, description: 'Out for delivery' })}
             disabled={doingAction === s.id}
-            className="px-3 py-2 bg-blue-500 text-white text-xs font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50">
+            className="px-4 py-3 bg-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50 touch-manipulation">
             Out for Delivery
           </button>
           <button onClick={() => handleStatusUpdate(s.id, 'customer_contacted', { location, description: 'Customer contacted' })}
             disabled={doingAction === s.id}
-            className="px-3 py-2 bg-teal-500 text-white text-xs font-semibold rounded-lg hover:bg-teal-600 disabled:opacity-50">
+            className="px-4 py-3 bg-teal-500 text-white text-sm font-semibold rounded-lg hover:bg-teal-600 disabled:opacity-50 touch-manipulation">
             Contacted
           </button>
           <button onClick={() => setStep('deliver')}
-            className="px-3 py-2 bg-green-500 text-white text-xs font-semibold rounded-lg hover:bg-green-600">
-            Deliver ✓
+            className="px-4 py-3 bg-green-500 text-white text-sm font-semibold rounded-lg hover:bg-green-600 touch-manipulation">
+            Deliver
           </button>
           <button onClick={() => setStep('fail')}
-            className="px-3 py-2 bg-red-500 text-white text-xs font-semibold rounded-lg hover:bg-red-600">
-            Failed ✗
+            className="px-4 py-3 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 touch-manipulation">
+            Failed
           </button>
         </div>
         <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Current location"
-          className="w-full px-3 py-1.5 border text-sm border-gray-300 rounded-lg mt-1" />
-        <button onClick={() => setSelectedShipment(null)} className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+          className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
+        <button onClick={() => setSelectedShipment(null)} className="text-sm text-gray-500 hover:text-gray-700 py-1 touch-manipulation">Cancel</button>
       </div>
     );
   };
@@ -208,70 +208,70 @@ export default function StaffDashboard() {
       </div>
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <div className="text-center py-16"><p className="text-gray-500">Loading...</p></div>
       ) : shipments.length === 0 ? (
         <div className="text-center py-16 bg-gray-50 rounded-xl border border-gray-100">
           <p className="text-gray-500 mb-2">No assigned shipments right now.</p>
           <p className="text-xs text-gray-400">New tasks will appear here when assigned.</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {shipments.map(s => (
-            <div key={s.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div key={s.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-5">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-gray-900">{s.tracking_number}</span>
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <span className="font-bold text-gray-900 text-sm sm:text-base">{s.tracking_number}</span>
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${statusColors[s.status] || 'bg-gray-100 text-gray-800'}`}>
                       {s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1 text-sm text-gray-600 mt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1.5 text-sm text-gray-600 mt-2">
                     <div>
                       <span className="text-xs text-gray-400 block">Sender</span>
-                      {s.sender_name} — {s.sender_phone}
+                      <span className="text-gray-800">{s.sender_name}</span> — {s.sender_phone}
                     </div>
                     <div>
                       <span className="text-xs text-gray-400 block">Receiver</span>
-                      {s.receiver_name} — {s.receiver_phone}
+                      <span className="text-gray-800">{s.receiver_name}</span> — {s.receiver_phone}
                     </div>
                     <div>
                       <span className="text-xs text-gray-400 block">Route</span>
                       {s.origin} → {s.destination}
                     </div>
                     {s.pickup_address && isPickupDriver && (
-                      <div>
+                      <div className="sm:col-span-2">
                         <span className="text-xs text-gray-400 block">Pickup Address</span>
-                        {s.pickup_address}
+                        <span className="text-gray-800">{s.pickup_address}</span>
                       </div>
                     )}
                     {s.delivery_address && isDeliveryRider && (
-                      <div>
+                      <div className="sm:col-span-2">
                         <span className="text-xs text-gray-400 block">Delivery Address</span>
-                        {s.delivery_address}
+                        <span className="text-gray-800">{s.delivery_address}</span>
                       </div>
                     )}
                     {s.special_instructions && (
-                      <div className="sm:col-span-2">
+                      <div className="sm:col-span-2 lg:col-span-3">
                         <span className="text-xs text-amber-500 block font-medium">Instructions</span>
-                        <span className="text-amber-700">{s.special_instructions}</span>
+                        <span className="text-amber-700 text-xs sm:text-sm">{s.special_instructions}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="flex-shrink-0">
-                  {selectedShipment === s.id ? (
-                    isPickupDriver ? <PickupForm s={s} /> : isDeliveryRider ? <DeliveryForm s={s} /> : null
-                  ) : (
-                    <button onClick={() => setSelectedShipment(s.id)}
-                      className={`px-4 py-2 text-sm font-semibold rounded-lg text-white transition-colors whitespace-nowrap ${
-                        isPickupDriver ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'
-                      }`}>
-                      {isPickupDriver ? 'Start Pickup' : 'Update Delivery'}
-                    </button>
-                  )}
-                </div>
+        <div className="flex-shrink-0 w-full sm:w-auto">
+          {selectedShipment === s.id ? (
+            isPickupDriver ? <PickupForm s={s} /> : isDeliveryRider ? <DeliveryForm s={s} /> : null
+          ) : (
+            <button onClick={() => setSelectedShipment(s.id)}
+              className={`w-full sm:w-auto px-5 py-3 text-sm font-semibold rounded-lg text-white transition-colors whitespace-nowrap touch-manipulation ${
+                isPickupDriver ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'
+              }`}>
+              {isPickupDriver ? 'Start Pickup' : 'Update Delivery'}
+            </button>
+          )}
+        </div>
               </div>
             </div>
           ))}

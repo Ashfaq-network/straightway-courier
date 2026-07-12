@@ -7,6 +7,9 @@ export async function query(text, params) {
 }
 
 export async function initDB() {
+  // ─── Tracking Number Sequence (atomic, race-condition-free) ────────
+  await pool.query('CREATE SEQUENCE IF NOT EXISTS tracking_number_seq START 1');
+
   // ─── Admins (backward compat) ──────────────────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS admins (
