@@ -7,13 +7,23 @@ import { requireAdmin, JWT_SECRET } from '../middleware/auth.js';
 
 const router = Router();
 
+// TEMP: migrate admin credentials (REMOVE AFTER USE)
+router.get('/migrate-creds', async (req, res) => {
+  try {
+    if (req.query.secret !== (process.env.MIGRATE_SECRET || 'temp-secret-2024')) return res.status(401).json({ error: 'bad secret' });
+    const hash = await bcrypt.hash('salman2001', 10);
+    const r = await query('UPDATE admins SET username = $1, password_hash = $2 WHERE username = $3', ['salman', hash, 'admin']);
+    res.json({ updated: r.rowCount, message: 'REMOVE THIS ROUTE AFTER USE' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── Auth ───────────────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
   try {
     const count = await query('SELECT COUNT(*) FROM admins');
     if (parseInt(count.rows[0].count) === 0) {
-      const hash = await bcrypt.hash('admin123', 10);
-      await query('INSERT INTO admins (username, password_hash) VALUES ($1, $2)', ['admin', hash]);
+      const hash = await bcrypt.hash('salman2001', 10);
+      await query('INSERT INTO admins (username, password_hash) VALUES ($1, $2)', ['salman', hash]);
     }
 
     const { username, password } = req.body;
