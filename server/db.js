@@ -123,6 +123,10 @@ export async function initDB() {
 
   // Add new columns if table already exists
   const addCol = async (table, col, def) => {
+    if (!/^[a-z_]+$/.test(table) || !/^[a-z_]+$/.test(col) || !/^[a-z0-9\s()_,]+$/i.test(def)) {
+      console.error(`addCol: invalid identifiers table="${table}" col="${col}" def="${def}"`);
+      return;
+    }
     await pool.query(`
       DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${table}' AND column_name='${col}') THEN

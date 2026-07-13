@@ -24,6 +24,7 @@ app.use(async (req, res, next) => {
       });
     }
     await initPromise;
+    if (!initialized) return res.status(503).json({ error: 'Database not available, try again shortly' });
   }
   next();
 });
