@@ -474,7 +474,7 @@ router.get('/deliveries', async (req, res) => {
     const { status } = req.query;
     let sql = `SELECT s.*, d.name AS rider_name, d.phone AS rider_phone
       FROM shipments s LEFT JOIN delivery_staff d ON s.delivery_rider_id = d.id
-      WHERE s.status IN ('out_for_delivery','delivered','failed_delivery','rescheduled')`;
+      WHERE s.status IN ('sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','rescheduled')`;
     const params = [];
     if (status) { sql += ' AND s.status = $1'; params.push(status); }
     sql += ' ORDER BY s.updated_at DESC';

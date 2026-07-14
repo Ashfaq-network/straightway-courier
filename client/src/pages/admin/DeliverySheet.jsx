@@ -2,10 +2,21 @@ import { useState, useEffect } from 'react';
 
 const API = '/api/admin';
 
+const statusColors = {
+  sorted: 'bg-indigo-100 text-indigo-800',
+  out_for_delivery: 'bg-blue-100 text-blue-800',
+  customer_contacted: 'bg-teal-100 text-teal-800',
+  delivered: 'bg-green-100 text-green-800',
+  failed_delivery: 'bg-red-100 text-red-800',
+  returned_to_sender: 'bg-gray-200 text-gray-800',
+  rescheduled: 'bg-cyan-100 text-cyan-800',
+};
+
 export default function DeliverySheet({ onBack }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [riderFilter, setRiderFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   const getToken = () => sessionStorage.getItem('swc_token');
 
@@ -14,12 +25,16 @@ export default function DeliverySheet({ onBack }) {
   const fetchSheet = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/deliveries?status=out_for_delivery`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      const res = await fetch(`${API}/deliveries`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
       if (res.ok) setItems(await res.json());
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
-  const filtered = riderFilter ? items.filter(s => s.rider_name === riderFilter) : items;
+  const filtered = items.filter(s => {
+    if (riderFilter && s.rider_name !== riderFilter) return false;
+    if (statusFilter && s.status !== statusFilter) return false;
+    return true;
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
@@ -34,12 +49,19 @@ export default function DeliverySheet({ onBack }) {
         </div>
       </div>
 
-      <div className="no-print mb-4">
+      <div className="no-print mb-4 flex flex-wrap gap-2">
         <select value={riderFilter} onChange={(e) => setRiderFilter(e.target.value)}
           className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm">
           <option value="">All Riders</option>
           {[...new Set(items.map(s => s.rider_name).filter(Boolean))].map(r => (
             <option key={r} value={r}>{r}</option>
+          ))}
+        </select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm">
+          <option value="">All Statuses</option>
+          {['sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','returned_to_sender','rescheduled'].map(st => (
+            <option key={st} value={st}>{st.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
           ))}
         </select>
       </div>
@@ -113,7 +135,7 @@ function RiderSection({ shipments, rider }) {
                 <td className="px-3 py-2 text-xs">{s.cod_amount ? `LKR ${s.cod_amount}` : '-'}</td>
                 <td className="px-3 py-2 text-xs text-amber-600 max-w-[120px]">{s.special_instructions || '-'}</td>
                 <td className="px-3 py-2 text-xs">
-                  <span className="inline-block px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-medium">
+                  <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${statusColors[s.status] || 'bg-gray-100 text-gray-800'}`}>
                     {s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                   </span>
                 </td>
