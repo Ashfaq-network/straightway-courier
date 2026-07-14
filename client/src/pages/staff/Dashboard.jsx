@@ -9,6 +9,7 @@ export default function StaffDashboard() {
   const [profile, setProfile] = useState(null);
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [doingAction, setDoingAction] = useState(null);
+  const [showSheet, setShowSheet] = useState(false);
   const navigate = useNavigate();
 
   const getToken = () => sessionStorage.getItem('staff_token');
@@ -204,10 +205,78 @@ export default function StaffDashboard() {
           <h1 className="text-2xl font-bold text-gray-900">{roleLabel} Portal</h1>
           {profile && <p className="text-sm text-gray-500">Welcome, {profile.name}</p>}
         </div>
-        <button onClick={handleLogout} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">Logout</button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowSheet(!showSheet)} className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm">
+            {showSheet ? 'Tasks View' : 'Delivery Sheet'}
+          </button>
+          <button onClick={handleLogout} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">Logout</button>
+        </div>
       </div>
 
-      {loading ? (
+      {showSheet ? (
+        <div className="print-area">
+          <div className="text-center mb-6 hidden print:block">
+            <h1 className="text-2xl font-bold text-gray-900">Delivery Sheet</h1>
+            <p className="text-sm text-gray-500">Straightway Couriers — {profile?.name} — {new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          </div>
+          <div className="flex justify-end mb-4 no-print">
+            <button onClick={() => window.print()}
+              className="px-5 py-2.5 bg-brand-500 text-white font-semibold rounded-lg hover:bg-brand-600 text-sm flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+              Print
+            </button>
+          </div>
+          {loading ? <p className="text-gray-500">Loading...</p> : shipments.length === 0 ? (
+            <p className="text-gray-500">No parcels assigned.</p>
+          ) : (
+            <div className="overflow-x-auto bg-white rounded-xl shadow border border-gray-100">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 print:bg-gray-100">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">#</th>
+                    <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">Tracking</th>
+                    <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">Sender</th>
+                    <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">Receiver</th>
+                    <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">Phone</th>
+                    <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">Address</th>
+                    <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">Parcel</th>
+                    <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">COD</th>
+                    <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">Instructions</th>
+                    <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {shipments.map((s, i) => (
+                    <tr key={s.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-2 text-xs text-gray-500">{i + 1}</td>
+                      <td className="px-3 py-2 font-semibold text-gray-900 text-xs">{s.tracking_number}</td>
+                      <td className="px-3 py-2 text-gray-800 text-xs">{s.sender_name}</td>
+                      <td className="px-3 py-2 text-gray-800 text-xs">{s.receiver_name}</td>
+                      <td className="px-3 py-2 text-gray-600 text-xs">{s.receiver_phone}</td>
+                      <td className="px-3 py-2 text-gray-600 text-xs max-w-[160px]">{isPickupDriver ? (s.pickup_address || s.sender_address || '-') : (s.delivery_address || s.receiver_address || '-')}</td>
+                      <td className="px-3 py-2 text-gray-600 text-xs">{s.parcel_type || '-'}{s.weight ? ` (${s.weight}kg)` : ''}</td>
+                      <td className="px-3 py-2 text-xs">{s.cod_amount ? `LKR ${s.cod_amount}` : '-'}</td>
+                      <td className="px-3 py-2 text-xs text-amber-600 max-w-[120px]">{s.special_instructions || '-'}</td>
+                      <td className="px-3 py-2 text-xs">
+                        <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${statusColors[s.status] || 'bg-gray-100 text-gray-800'}`}>
+                          {s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <style>{`
+            @media print {
+              body { font-size: 11px; }
+              .no-print { display: none !important; }
+              .print-area { margin: 0; padding: 0; }
+            }
+          `}</style>
+        </div>
+      ) : loading ? (
         <div className="text-center py-16"><p className="text-gray-500">Loading...</p></div>
       ) : shipments.length === 0 ? (
         <div className="text-center py-16 bg-gray-50 rounded-xl border border-gray-100">

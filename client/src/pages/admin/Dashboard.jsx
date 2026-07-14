@@ -8,6 +8,7 @@ import Deliveries from './Deliveries';
 import COD from './COD';
 import Reports from './Reports';
 import StaffManagement from './StaffManagement';
+import DeliverySheet from './DeliverySheet';
 
 const API = '/api/admin';
 
@@ -98,6 +99,7 @@ export default function AdminDashboard() {
     { id: 'cod', label: 'COD' },
     { id: 'reports', label: 'Reports' },
     { id: 'messages', label: 'Messages' },
+    { id: 'delivery-sheet', label: 'Delivery Sheet' },
   ];
 
   const statusColors = {
@@ -121,6 +123,7 @@ export default function AdminDashboard() {
   if (tab === 'reports') return <Reports onBack={() => setTab('dashboard')} />;
   if (tab === 'staff') return <StaffManagement onBack={() => setTab('dashboard')} />;
   if (tab === 'messages') return <Messages onBack={() => setTab('dashboard')} />;
+  if (tab === 'delivery-sheet') return <DeliverySheet onBack={() => setTab('dashboard')} />;
 
   if (showForm) {
     return <ShipmentForm shipment={editing} onDone={() => { setShowForm(false); setEditing(null); fetchShipments(); fetchStats(); }}
