@@ -9,6 +9,7 @@ import COD from './COD';
 import Reports from './Reports';
 import StaffManagement from './StaffManagement';
 import DeliverySheet from './DeliverySheet';
+import Waybill from '../../components/Waybill';
 
 const API = '/api/admin';
 
@@ -25,6 +26,7 @@ export default function AdminDashboard() {
   const [dateTo, setDateTo] = useState('');
   const [trackData, setTrackData] = useState(null);
   const [trackLoading, setTrackLoading] = useState(false);
+  const [waybillShipment, setWaybillShipment] = useState(null);
   const navigate = useNavigate();
 
   const getToken = () => sessionStorage.getItem('swc_token');
@@ -232,6 +234,7 @@ export default function AdminDashboard() {
                   </td>
                   <td className="px-4 py-3 text-center text-xs">{s.delivery_charge ? `LKR ${s.delivery_charge}` : '-'}</td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <button onClick={() => setWaybillShipment(s)} className="text-gray-500 hover:text-gray-700 hover:underline text-xs mr-2">Waybill</button>
                     <button onClick={() => viewTracking(s.id)} className="text-teal-500 hover:underline text-xs mr-2">Track</button>
                     <button onClick={() => { setEditing(s); setShowForm(true); }} className="text-blue-500 hover:underline text-xs mr-2">Edit</button>
                     <button onClick={() => handleDelete(s.id)} className="text-red-500 hover:underline text-xs">Delete</button>
@@ -242,6 +245,8 @@ export default function AdminDashboard() {
           </table>
         </div>
       )}
+
+      {waybillShipment && <Waybill shipment={waybillShipment} onClose={() => setWaybillShipment(null)} />}
 
       {/* Tracking Modal */}
       {trackData && (

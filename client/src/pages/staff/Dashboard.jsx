@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Waybill from '../../components/Waybill';
 
 const API = '/api/staff';
 
@@ -10,6 +11,7 @@ export default function StaffDashboard() {
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [doingAction, setDoingAction] = useState(null);
   const [showSheet, setShowSheet] = useState(false);
+  const [waybillShipment, setWaybillShipment] = useState(null);
   const navigate = useNavigate();
 
   const getToken = () => sessionStorage.getItem('staff_token');
@@ -333,12 +335,18 @@ export default function StaffDashboard() {
           {selectedShipment === s.id ? (
             isPickupDriver ? <PickupForm s={s} /> : isDeliveryRider ? <DeliveryForm s={s} /> : null
           ) : (
-            <button onClick={() => setSelectedShipment(s.id)}
-              className={`w-full sm:w-auto px-5 py-3 text-sm font-semibold rounded-lg text-white transition-colors whitespace-nowrap touch-manipulation ${
-                isPickupDriver ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'
-              }`}>
-              {isPickupDriver ? 'Start Pickup' : 'Update Delivery'}
-            </button>
+            <div className="flex flex-col gap-2">
+              <button onClick={() => setSelectedShipment(s.id)}
+                className={`w-full sm:w-auto px-5 py-3 text-sm font-semibold rounded-lg text-white transition-colors whitespace-nowrap touch-manipulation ${
+                  isPickupDriver ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'
+                }`}>
+                {isPickupDriver ? 'Start Pickup' : 'Update Delivery'}
+              </button>
+              <button onClick={() => setWaybillShipment(s)}
+                className="w-full sm:w-auto px-4 py-2 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors touch-manipulation">
+                Waybill
+              </button>
+            </div>
           )}
         </div>
               </div>
@@ -346,6 +354,8 @@ export default function StaffDashboard() {
           ))}
         </div>
       )}
+
+      {waybillShipment && <Waybill shipment={waybillShipment} onClose={() => setWaybillShipment(null)} />}
     </div>
   );
 }
