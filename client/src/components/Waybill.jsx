@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
+import QRCode from 'qrcode';
 
 export default function Waybill({ shipment, onClose }) {
   const barcodeRef = useRef(null);
+  const qrRef = useRef(null);
 
   useEffect(() => {
     if (barcodeRef.current && shipment?.tracking_number) {
@@ -12,6 +14,13 @@ export default function Waybill({ shipment, onClose }) {
         height: 60,
         displayValue: false,
         margin: 0,
+      });
+    }
+    if (qrRef.current && shipment?.tracking_number) {
+      QRCode.toCanvas(qrRef.current, `${window.location.origin}/track?q=${shipment.tracking_number}`, {
+        width: 100,
+        margin: 1,
+        color: { dark: '#1e293b' },
       });
     }
   }, [shipment]);
@@ -52,15 +61,21 @@ export default function Waybill({ shipment, onClose }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* 2. Tracking Information */}
             <div className="sm:col-span-2 bg-gray-50 rounded-xl p-4 border border-gray-100">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Tracking Number</p>
                   <p className="text-xl font-bold text-gray-900 tracking-tight">{s.tracking_number}</p>
                   <p className="text-xs text-gray-400 mt-1">Date: {new Date(s.created_at || s.createdAt || new Date()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                 </div>
-                <div className="flex-shrink-0 text-center">
-                  <svg ref={barcodeRef} className="mx-auto" />
-                  <p className="text-[10px] text-gray-500 mt-1 tracking-widest font-mono">{s.tracking_number}</p>
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <svg ref={barcodeRef} className="mx-auto" />
+                    <p className="text-[10px] text-gray-500 mt-1 tracking-widest font-mono">{s.tracking_number}</p>
+                  </div>
+                  <div className="text-center">
+                    <canvas ref={qrRef} className="mx-auto rounded-lg" />
+                    <p className="text-[10px] text-gray-400 mt-1">Scan to track</p>
+                  </div>
                 </div>
               </div>
             </div>
