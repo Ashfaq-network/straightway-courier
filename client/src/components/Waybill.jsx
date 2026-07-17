@@ -8,8 +8,8 @@ export default function Waybill({ shipment, onClose }) {
     if (barcodeRef.current && shipment?.tracking_number) {
       JsBarcode(barcodeRef.current, shipment.tracking_number, {
         format: 'CODE128',
-        width: 1.8,
-        height: 50,
+        width: 2.2,
+        height: 60,
         displayValue: false,
         margin: 0,
       });
@@ -58,8 +58,9 @@ export default function Waybill({ shipment, onClose }) {
                   <p className="text-xl font-bold text-gray-900 tracking-tight">{s.tracking_number}</p>
                   <p className="text-xs text-gray-400 mt-1">Date: {new Date(s.created_at || s.createdAt || new Date()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                 </div>
-                <div className="flex-shrink-0">
-                  <svg ref={barcodeRef} />
+                <div className="flex-shrink-0 text-center">
+                  <svg ref={barcodeRef} className="mx-auto" />
+                  <p className="text-[10px] text-gray-500 mt-1 tracking-widest font-mono">{s.tracking_number}</p>
                 </div>
               </div>
             </div>

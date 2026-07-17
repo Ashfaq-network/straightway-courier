@@ -34,7 +34,7 @@ router.use(requireAdmin);
 // ─── Generate Tracking Number (atomic sequence) ─────────────────────
 router.get('/generate-tracking', async (req, res) => {
   try {
-    const seq = await query("SELECT 'SW' || LPAD(NEXTVAL('tracking_number_seq')::text, 4, '0') AS tn");
+    const seq = await query("SELECT 'SW' || LPAD(NEXTVAL('tracking_number_seq')::text, 3, '0') AS tn");
     res.json({ tracking_number: seq.rows[0].tn });
   } catch (err) {
     res.status(500).json({ error: err.message });

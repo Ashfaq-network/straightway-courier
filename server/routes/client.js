@@ -69,7 +69,7 @@ router.post('/pickup-request', async (req, res) => {
     if (!sender_name || !sender_name.trim()) return res.status(400).json({ error: 'Sender name is required' });
     if (!receiver_name || !receiver_name.trim()) return res.status(400).json({ error: 'Receiver name is required' });
 
-    const seq = await query("SELECT 'SW' || LPAD(NEXTVAL('tracking_number_seq')::text, 4, '0') AS tn");
+    const seq = await query("SELECT 'SW' || LPAD(NEXTVAL('tracking_number_seq')::text, 3, '0') AS tn");
     const tracking_number = seq.rows[0].tn;
 
     const result = await query(`INSERT INTO shipments (client_id, tracking_number, sender_name, sender_phone,
