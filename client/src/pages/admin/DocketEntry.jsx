@@ -182,12 +182,44 @@ export default function DocketEntry({ onBack }) {
         }
       }
 
-      setShowForm(false);
-      setEditingId(null);
-      setPickups([]);
-      setSelectedPickupId(null);
-      setRemainingItems(null);
-      setForm(defaultForm);
+      if (editingId) {
+        setShowForm(false);
+        setEditingId(null);
+        setPickups([]);
+        setSelectedPickupId(null);
+        setRemainingItems(null);
+        setForm(defaultForm);
+      } else {
+        const newRemaining = remainingItems !== null ? remainingItems - 1 : null;
+        const res = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+        const newTracking = res.ok ? (await res.json()).tracking_number : '';
+        setForm({
+          ...defaultForm,
+          tracking_number: newTracking,
+          sw_tracking_number: '',
+          client_id: form.client_id,
+          sender_name: form.sender_name,
+          sender_phone: form.sender_phone,
+          sender_address: form.sender_address,
+          docket_date: new Date().toISOString().slice(0, 16),
+        });
+        const pr = await fetch(`${API}/pickups?client_id=${form.client_id}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+        if (pr.ok) {
+          const p = (await pr.json()).filter(p => p._type === 'shipment');
+          setPickups(p);
+          if (newRemaining !== null && newRemaining > 0) {
+            setRemainingItems(newRemaining);
+            setSelectedPickupId(selectedPickupId);
+          } else {
+            setSelectedPickupId(null);
+            setRemainingItems(null);
+          }
+        } else {
+          setPickups([]);
+          setSelectedPickupId(null);
+          setRemainingItems(null);
+        }
+      }
       fetchItems(search);
     } catch (err) { alert(err.message); } finally { setSaving(false); }
   };
