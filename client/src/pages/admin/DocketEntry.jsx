@@ -273,7 +273,7 @@ export default function DocketEntry({ onBack }) {
     w.document.close();
   };
 
-  const handleClientSelect = (clientId) => {
+  const handleClientSelect = async (clientId) => {
     const client = clients.find(c => String(c.id) === String(clientId));
     if (client) {
       setForm({
@@ -283,10 +283,27 @@ export default function DocketEntry({ onBack }) {
         sender_phone: client.phone || '',
         sender_address: client.address || '',
       });
-      fetchPickups(clientId);
+      const res = await fetch(`${API}/pickups?client_id=${clientId}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (res.ok) {
+        const data = await res.json();
+        const p = data.filter(p => p._type === 'shipment');
+        setPickups(p);
+        if (p.length === 1) {
+          handlePickupSelect(String(p[0].id));
+        } else if (p.length === 0) {
+          setSelectedPickupId(null);
+          setRemainingItems(null);
+        }
+      } else {
+        setPickups([]);
+        setSelectedPickupId(null);
+        setRemainingItems(null);
+      }
     } else {
       setForm({ ...form, client_id: '' });
       setPickups([]);
+      setSelectedPickupId(null);
+      setRemainingItems(null);
     }
   };
 
@@ -303,7 +320,7 @@ export default function DocketEntry({ onBack }) {
         sender_name: pickup.sender_name || form.sender_name,
         sender_phone: pickup.sender_phone || form.sender_phone,
         sender_address: pickup.sender_address || form.sender_address,
-        num_items: pickup.num_items || form.num_items,
+        num_items: '1',
         weight: pickup.weight || form.weight,
         destination: pickup.destination || form.destination,
         special_instructions: pickup.special_instructions || form.special_instructions,
@@ -351,25 +368,27 @@ export default function DocketEntry({ onBack }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">No. of Items</label>
-              <input type="text" inputMode="numeric" placeholder="e.g. 2" value={form.num_items} onChange={(e) => setForm({...form, num_items: e.target.value})}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+              <input type="text" inputMode="numeric" value={form.num_items}
+                onChange={(e) => setForm({...form, num_items: e.target.value})}
+                disabled={!!selectedPickupId}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm disabled:bg-gray-100 disabled:text-gray-500" />
             </div>
           </div>
 
-          {pickups.length > 0 && (
+          {pickups.length > 1 && (
             <div className="mb-4">
               <label className="block text-xs font-medium text-gray-600 mb-1">From Pickup</label>
               <div className="flex items-center gap-4">
                 <select onChange={(e) => handlePickupSelect(e.target.value)} className="flex-1 max-w-md px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
-                  <option value="">Select a pickup to auto-fill...</option>
-                  {pickups.map(p => <option key={p.id} value={p.id}>{p.tracking_number} — {p.sender_name}</option>)}
+                  <option value="">Select a pickup...</option>
+                  {pickups.map(p => <option key={p.id} value={p.id}>{p.tracking_number} — {p.sender_name} ({p.remaining_items} left)</option>)}
                 </select>
-                {remainingItems !== null && (
-                  <span className="text-sm text-gray-500">
-                    <span className="font-semibold text-brand-600">{remainingItems}</span> parcel{remainingItems !== 1 ? 's' : ''} remaining
-                  </span>
-                )}
               </div>
+            </div>
+          )}
+          {selectedPickupId && remainingItems !== null && (
+            <div className="mb-4 text-sm text-gray-500">
+              Pickup <span className="font-semibold text-brand-600">{pickups.find(p => String(p.id) === String(selectedPickupId))?.tracking_number}</span> — <span className="font-semibold text-brand-600">{remainingItems}</span> parcel{remainingItems !== 1 ? 's' : ''} remaining
             </div>
           )}
 
@@ -532,6 +551,8 @@ export default function DocketEntry({ onBack }) {
                       <>
                         <button onClick={() => handlePDF(s)}
                           className="text-green-500 hover:underline text-xs mr-2">PDF</button>
+                        <button onClick={() => handleDelete(s.id, s.tracking_number)}
+                          className="text-red-400 hover:text-red-600 text-xs mr-2">Delete</button>
                         <span className="text-xs text-gray-400 italic">Sorted</span>
                       </>
                     )}
