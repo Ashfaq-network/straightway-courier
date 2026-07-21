@@ -152,22 +152,29 @@ export default function DocketEntry({ onBack }) {
         if (!res.ok) { const d = await res.json(); alert(d.error); return; }
         shipment = await res.json();
       } else if (selectedPickupId) {
-        const pickup = pickups.find(p => String(p.id) === String(selectedPickupId));
         const body = {
+          tracking_number: form.tracking_number,
+          sw_tracking_number: form.sw_tracking_number || null,
+          client_id: form.client_id || null,
+          sender_name: form.sender_name,
+          sender_phone: form.sender_phone,
+          sender_address: form.sender_address,
           receiver_name: form.receiver_name,
           receiver_phone: form.receiver_phone,
           receiver_address: form.receiver_address,
+          origin: form.sender_address || 'N/A',
           destination: form.destination || form.receiver_address || 'N/A',
-          cod_amount: form.cod_amount || null,
+          num_items: 1,
           weight: form.weight,
-          sw_tracking_number: form.sw_tracking_number || null,
+          cod_amount: form.cod_amount || null,
           special_instructions: form.special_instructions,
           sorting_area: form.sorting_area,
           status: 'at_sorting_center',
           pickup_scheduled_at: form.docket_date || null,
+          pickup_id: parseInt(selectedPickupId),
         };
-        const res = await fetch(`${API}/shipments/${selectedPickupId}`, {
-          method: 'PUT',
+        const res = await fetch(`${API}/shipments`, {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
           body: JSON.stringify(body)
         });
@@ -216,25 +223,30 @@ export default function DocketEntry({ onBack }) {
         setSelectedPickupId(null);
         setForm(defaultForm);
       } else {
-        const pr = await fetch(`${API}/pickups?client_id=${form.client_id}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-        if (pr.ok) {
-          const p = (await pr.json()).filter(p => p._type === 'shipment');
-          setPickups(p);
-          if (p.length === 1) {
-            fillFromPickup(p[0], form.client_id);
-            return;
+        const currentPickup = pickups.find(p => String(p.id) === String(selectedPickupId));
+        const remaining = currentPickup ? (currentPickup.remaining_items ?? currentPickup.num_items) - 1 : 0;
+        if (remaining > 0) {
+          const updated = { ...currentPickup, remaining_items: remaining };
+          setPickups(pickups.map(p => String(p.id) === String(selectedPickupId) ? updated : p));
+          fillFromPickup(updated, form.client_id);
+        } else {
+          const remainingPickups = pickups.filter(p => String(p.id) !== String(selectedPickupId));
+          setPickups(remainingPickups);
+          if (remainingPickups.length > 0) {
+            fillFromPickup(remainingPickups[0], form.client_id);
+          } else {
+            setShowForm(false);
+            setSelectedPickupId(null);
+            setForm({
+              ...defaultForm,
+              client_id: form.client_id,
+              sender_name: form.sender_name,
+              sender_phone: form.sender_phone,
+              sender_address: form.sender_address,
+              docket_date: new Date().toISOString().slice(0, 16),
+            });
           }
         }
-        setPickups([]);
-        setSelectedPickupId(null);
-        setForm({
-          ...defaultForm,
-          client_id: form.client_id,
-          sender_name: form.sender_name,
-          sender_phone: form.sender_phone,
-          sender_address: form.sender_address,
-          docket_date: new Date().toISOString().slice(0, 16),
-        });
       }
       fetchItems(search);
     } catch (err) { alert(err.message); } finally { setSaving(false); }
@@ -356,9 +368,14 @@ export default function DocketEntry({ onBack }) {
     const pickup = pickups.find(p => String(p.id) === String(pickupId));
     if (pickup) {
       setSelectedPickupId(pickupId);
+      let tn = pickup.tracking_number || '';
+      try {
+        const r = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+        if (r.ok) tn = (await r.json()).tracking_number;
+      } catch {}
       setForm({
         ...form,
-        tracking_number: pickup.tracking_number || '',
+        tracking_number: tn,
         sender_name: pickup.sender_name || form.sender_name,
         sender_phone: pickup.sender_phone || form.sender_phone,
         sender_address: pickup.sender_address || form.sender_address,
@@ -370,12 +387,18 @@ export default function DocketEntry({ onBack }) {
     }
   };
 
-  const fillFromPickup = (pickup, clientId) => {
+  const fillFromPickup = async (pickup, clientId) => {
     if (!pickup) return;
     setSelectedPickupId(pickup.id);
+    // generate a new tracking number for this docket
+    let tn = pickup.tracking_number || '';
+    try {
+      const r = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (r.ok) tn = (await r.json()).tracking_number;
+    } catch {}
     setForm({
       ...defaultForm,
-      tracking_number: pickup.tracking_number || '',
+      tracking_number: tn,
       client_id: clientId || '',
       sender_name: pickup.sender_name || '',
       sender_phone: pickup.sender_phone || '',
