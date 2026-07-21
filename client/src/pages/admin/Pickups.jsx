@@ -12,6 +12,7 @@ const defaultPickupForm = {
   sender_name: '', sender_phone: '', sender_address: '',
   parcel_type: '',
   num_items: '', pickup_scheduled_at: '', pickup_driver_id: '',
+  special_instructions: '',
 };
 
 export default function Pickups({ onBack }) {
@@ -23,6 +24,7 @@ export default function Pickups({ onBack }) {
   const [showForm, setShowForm] = useState(false);
   const [pickupForm, setPickupForm] = useState(defaultPickupForm);
   const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [assignForm, setAssignForm] = useState({ id: null, driver_id: '', scheduled_at: '' });
 
   const getToken = () => sessionStorage.getItem('swc_token');
@@ -68,45 +70,98 @@ export default function Pickups({ onBack }) {
       const res = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
       if (res.ok) {
         const data = await res.json();
+        setEditingId(null);
         setPickupForm({ ...defaultPickupForm, tracking_number: data.tracking_number });
         setShowForm(true);
       }
     } catch (err) { console.error(err); }
   };
 
+  const openEditPickup = async (p) => {
+    setEditingId(p.id);
+    setPickupForm({
+      tracking_number: p.tracking_number || '',
+      client_id: p.client_id || '',
+      sender_name: p.sender_name || '',
+      sender_phone: p.sender_phone || '',
+      sender_address: p.sender_address || '',
+      parcel_type: p.parcel_type || '',
+      num_items: p.num_items || '',
+      pickup_scheduled_at: p.pickup_scheduled_at || '',
+      pickup_driver_id: p.pickup_driver_id || '',
+      special_instructions: p.special_instructions || '',
+    });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setPickupForm(defaultPickupForm);
+  };
+
   const handlePickupSubmit = async (e) => {
     e.preventDefault();
     setCreating(true);
     try {
-      const res = await fetch(`${API}/shipments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-        body: JSON.stringify({
-          ...pickupForm,
-          client_id: pickupForm.client_id || null,
-          receiver_name: pickupForm.sender_name, receiver_phone: pickupForm.sender_phone,
-          origin: pickupForm.sender_address || 'N/A',
-          destination: pickupForm.sender_address || 'N/A',
-          delivery_type: '', cod_amount: '', delivery_charge: '',
-          payment_status: 'pending', status: 'pickup_requested',
-        })
-      });
-      if (!res.ok) { const d = await res.json(); alert(d.error); return; }
-      const shipment = await res.json();
-
-      if (pickupForm.pickup_driver_id || pickupForm.pickup_scheduled_at) {
-        await fetch(`${API}/pickups/${shipment.id}/assign`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-          body: JSON.stringify({
-            driver_id: pickupForm.pickup_driver_id ? parseInt(pickupForm.pickup_driver_id) : null,
-            scheduled_at: pickupForm.pickup_scheduled_at || null,
-          })
-        });
+      const body = {
+        ...pickupForm,
+        client_id: pickupForm.client_id || null,
+        receiver_name: pickupForm.sender_name,
+        receiver_phone: pickupForm.sender_phone,
+        origin: pickupForm.sender_address || 'N/A',
+        destination: pickupForm.sender_address || 'N/A',
+        delivery_type: '', cod_amount: '', delivery_charge: '',
+        payment_status: 'pending',
+        status: editingId ? undefined : 'pickup_requested',
+      };
+      if (!editingId) {
+        body.status = 'pickup_requested';
       }
 
-      setShowForm(false);
-      setPickupForm(defaultPickupForm);
+      let shipment;
+      if (editingId) {
+        const res = await fetch(`${API}/shipments/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) { const d = await res.json(); alert(d.error); return; }
+        shipment = await res.json();
+
+        if (pickupForm.pickup_driver_id || pickupForm.pickup_scheduled_at) {
+          await fetch(`${API}/pickups/${editingId}/assign`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+            body: JSON.stringify({
+              driver_id: pickupForm.pickup_driver_id ? parseInt(pickupForm.pickup_driver_id) : null,
+              scheduled_at: pickupForm.pickup_scheduled_at || null,
+            })
+          });
+        }
+      } else {
+        const res = await fetch(`${API}/shipments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) { const d = await res.json(); alert(d.error); return; }
+        shipment = await res.json();
+
+        if (pickupForm.pickup_driver_id || pickupForm.pickup_scheduled_at) {
+          await fetch(`${API}/pickups/${shipment.id}/assign`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+            body: JSON.stringify({
+              driver_id: pickupForm.pickup_driver_id ? parseInt(pickupForm.pickup_driver_id) : null,
+              scheduled_at: pickupForm.pickup_scheduled_at || null,
+            })
+          });
+        }
+      }
+
+      cancelForm();
       fetchPickups();
     } catch (err) { alert(err.message); } finally { setCreating(false); }
   };
@@ -144,6 +199,14 @@ export default function Pickups({ onBack }) {
     fetchPickups();
   };
 
+  const handleDelete = async (id, tracking) => {
+    if (!confirm(`Delete pickup ${tracking}? This cannot be undone.`)) return;
+    await fetch(`${API}/shipments/${id}`, {
+      method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    fetchPickups();
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
       <div className="flex items-center justify-between mb-6">
@@ -158,11 +221,12 @@ export default function Pickups({ onBack }) {
 
       {showForm && (
         <form onSubmit={handlePickupSubmit} className="bg-gray-50 rounded-xl p-6 border border-gray-100 mb-6">
-          <h3 className="font-semibold text-gray-900 mb-4">New Pickup (PC Series)</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">{editingId ? 'Edit Pickup' : 'New Pickup (PC Series)'}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Tracking Number</label>
-              <input type="text" value={pickupForm.tracking_number} onChange={(e) => setPickupForm({...pickupForm, tracking_number: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-bold text-brand-600 bg-white" />
+              <input type="text" value={pickupForm.tracking_number} onChange={(e) => setPickupForm({...pickupForm, tracking_number: e.target.value})}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-bold text-brand-600 bg-white" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Client</label>
@@ -194,6 +258,12 @@ export default function Pickups({ onBack }) {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
             </div>
           </div>
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-gray-600 mb-1">Special Instructions</label>
+            <textarea rows={2} placeholder="Instructions for pickup driver..." value={pickupForm.special_instructions}
+              onChange={(e) => setPickupForm({...pickupForm, special_instructions: e.target.value})}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Pickup</label>
@@ -212,9 +282,9 @@ export default function Pickups({ onBack }) {
           <div className="flex gap-2">
             <button type="submit" disabled={creating}
               className="px-5 py-2 bg-brand-500 text-white rounded-lg text-sm font-semibold hover:bg-brand-600 disabled:opacity-50">
-              {creating ? 'Creating...' : 'Create Pickup'}
+              {creating ? 'Saving...' : editingId ? 'Update Pickup' : 'Create Pickup'}
             </button>
-            <button type="button" onClick={() => setShowForm(false)}
+            <button type="button" onClick={cancelForm}
               className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm">Cancel</button>
           </div>
         </form>
@@ -254,6 +324,7 @@ export default function Pickups({ onBack }) {
                 <th className="text-left px-4 py-3 font-medium">Client</th>
                 <th className="text-left px-4 py-3 font-medium">Sender</th>
                 <th className="text-left px-4 py-3 font-medium">Pickup Address</th>
+                <th className="text-left px-4 py-3 font-medium">Parcels</th>
                 <th className="text-left px-4 py-3 font-medium">Driver</th>
                 <th className="text-left px-4 py-3 font-medium">Scheduled</th>
                 <th className="text-left px-4 py-3 font-medium">Status</th>
@@ -269,6 +340,7 @@ export default function Pickups({ onBack }) {
                   <td className="px-4 py-3 text-gray-600 text-xs">{p.client_name || <span className="text-gray-400">Walk-in</span>}</td>
                   <td className="px-4 py-3 text-gray-600">{p.sender_name}<br/><span className="text-xs">{p.sender_phone}</span></td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{p.pickup_address || p.sender_address || '-'}</td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">{isClient ? '-' : (p.num_items || '-')}</td>
                   <td className="px-4 py-3 text-gray-600">{isClient ? <span className="text-gray-300">—</span> : (p.driver_name || <span className="text-gray-400">Unassigned</span>)}</td>
                   <td className="px-4 py-3 text-xs text-gray-500">{isClient ? <span className="text-gray-300">—</span> : (p.pickup_scheduled_at ? new Date(p.pickup_scheduled_at).toLocaleString() : '-')}</td>
                   <td className="px-4 py-3">
@@ -282,14 +354,26 @@ export default function Pickups({ onBack }) {
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     {isClient ? (
-                      <span className="text-xs text-gray-400">Create a shipment first</span>
-                    ) : (p.status === 'pickup_requested' && (
-                      <>
-                        <button onClick={() => setAssignForm({ id: p.id, driver_id: p.pickup_driver_id || '', scheduled_at: p.pickup_scheduled_at || '' })}
-                          className="text-purple-500 hover:underline text-xs mr-2">Assign</button>
-                        <button onClick={() => handleStatus(p.id, 'picked_up')} className="text-orange-500 hover:underline text-xs">Pick Up</button>
-                      </>
-                    ))}
+                      <span className="text-xs text-gray-400">—</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1 justify-end">
+                        {p.status === 'pickup_requested' && (
+                          <>
+                            <button onClick={() => openEditPickup(p)}
+                              className="text-blue-500 hover:underline text-xs">Edit</button>
+                            <button onClick={() => setAssignForm({ id: p.id, driver_id: p.pickup_driver_id || '', scheduled_at: p.pickup_scheduled_at || '' })}
+                              className="text-purple-500 hover:underline text-xs">Assign</button>
+                            <button onClick={() => handleStatus(p.id, 'picked_up')}
+                              className="text-orange-500 hover:underline text-xs">Pick Up</button>
+                            <button onClick={() => handleDelete(p.id, p.tracking_number)}
+                              className="text-red-400 hover:text-red-600 text-xs">Delete</button>
+                          </>
+                        )}
+                        {p.status === 'picked_up' && (
+                          <span className="text-xs text-gray-400 italic">Picked up</span>
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               );})}
