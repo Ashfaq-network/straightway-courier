@@ -406,7 +406,8 @@ router.get('/pickups', async (req, res) => {
   try {
     const { status, search } = req.query;
     let sql = `SELECT s.*, d.name AS driver_name, d.phone AS driver_phone,
-      COALESCE(c.company_name, c.contact_person) AS client_name
+      COALESCE(c.company_name, c.contact_person) AS client_name,
+      'shipment' AS _type
       FROM shipments s
       LEFT JOIN delivery_staff d ON s.pickup_driver_id = d.id
       LEFT JOIN clients c ON s.client_id = c.id
@@ -421,7 +422,26 @@ router.get('/pickups', async (req, res) => {
     }
     sql += ' ORDER BY s.created_at DESC';
     const result = await query(sql, params);
-    res.json(result.rows);
+
+    let clients = [];
+    if (search) {
+      const cl = await query(`SELECT id, company_name, contact_person, phone, email, address
+        FROM clients WHERE is_active = true AND (company_name ILIKE $1 OR contact_person ILIKE $1 OR phone ILIKE $1)
+        ORDER BY created_at DESC`, [`%${search}%`]);
+      clients = cl.rows;
+    }
+
+    const rows = result.rows;
+    const clientIdsInResult = new Set(rows.filter(r => r.client_id).map(r => r.client_id));
+    const clientRows = clients.filter(c => !clientIdsInResult.has(c.id)).map(c => ({
+      client_id: c.id,
+      client_name: c.company_name || c.contact_person,
+      sender_name: c.contact_person,
+      sender_phone: c.phone,
+      _type: 'client',
+    }));
+
+    res.json([...rows, ...clientRows]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

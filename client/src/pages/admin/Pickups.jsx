@@ -102,30 +102,38 @@ export default function Pickups({ onBack }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {pickups.map(p => (
-                <tr key={p.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{p.tracking_number}</td>
+              {pickups.map(p => {
+                const isClient = p._type === 'client';
+                return (
+                <tr key={p.id || 'c_' + p.client_id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-gray-900">{isClient ? <span className="text-gray-300">—</span> : p.tracking_number}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{p.client_name || <span className="text-gray-400">Walk-in</span>}</td>
                   <td className="px-4 py-3 text-gray-600">{p.sender_name}<br/><span className="text-xs">{p.sender_phone}</span></td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{p.pickup_address || p.sender_address || '-'}</td>
-                  <td className="px-4 py-3 text-gray-600">{p.driver_name || <span className="text-gray-400">Unassigned</span>}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500">{p.pickup_scheduled_at ? new Date(p.pickup_scheduled_at).toLocaleString() : '-'}</td>
+                  <td className="px-4 py-3 text-gray-600">{isClient ? <span className="text-gray-300">—</span> : (p.driver_name || <span className="text-gray-400">Unassigned</span>)}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500">{isClient ? <span className="text-gray-300">—</span> : (p.pickup_scheduled_at ? new Date(p.pickup_scheduled_at).toLocaleString() : '-')}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${statusColors[p.status] || 'bg-gray-100'}`}>
-                      {p.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                    </span>
+                    {isClient ? (
+                      <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-500">No pickup</span>
+                    ) : (
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${statusColors[p.status] || 'bg-gray-100'}`}>
+                        {p.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
-                    {p.status === 'pickup_requested' && (
-                      <button onClick={() => setAssignForm({ id: p.id, driver_id: p.pickup_driver_id || '', scheduled_at: p.pickup_scheduled_at || '' })}
-                        className="text-purple-500 hover:underline text-xs mr-2">Assign</button>
-                    )}
-                    {p.status === 'pickup_requested' && (
-                      <button onClick={() => handleStatus(p.id, 'picked_up')} className="text-orange-500 hover:underline text-xs">Pick Up</button>
-                    )}
+                    {isClient ? (
+                      <span className="text-xs text-gray-400">Create a shipment first</span>
+                    ) : (p.status === 'pickup_requested' && (
+                      <>
+                        <button onClick={() => setAssignForm({ id: p.id, driver_id: p.pickup_driver_id || '', scheduled_at: p.pickup_scheduled_at || '' })}
+                          className="text-purple-500 hover:underline text-xs mr-2">Assign</button>
+                        <button onClick={() => handleStatus(p.id, 'picked_up')} className="text-orange-500 hover:underline text-xs">Pick Up</button>
+                      </>
+                    ))}
                   </td>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         </div>
