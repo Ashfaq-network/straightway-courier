@@ -51,7 +51,7 @@ export default function Pickups({ onBack }) {
       const res = await fetch(`${API}/staff`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
       if (res.ok) {
         const data = await res.json();
-        setDrivers(data.filter(s => s.role === 'pickup_driver' && s.is_active));
+        setDrivers(data.filter(s => s.is_active));
       }
     } catch (err) { console.error(err); }
   };
