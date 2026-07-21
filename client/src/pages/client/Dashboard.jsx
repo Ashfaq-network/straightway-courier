@@ -56,6 +56,8 @@ export default function ClientDashboard() {
   const [loadingTracking, setLoadingTracking] = useState(false);
   const [trackSearch, setTrackSearch] = useState('');
   const [form, setForm] = useState({ sender_name: '', sender_phone: '', sender_address: '', receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: '', parcel_description: '', weight: '', delivery_type: '', cod_amount: '' });
+  const [docketForm, setDocketForm] = useState({ receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: '', weight: '', cod_amount: '', sw_tracking_number: '', num_items: '1' });
+  const [pickupType, setPickupType] = useState('pickup');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [profileForm, setProfileForm] = useState({ company_name: '', contact_person: '', phone: '', email: '', address: '' });
@@ -126,6 +128,21 @@ export default function ClientDashboard() {
       if (!res.ok) { const d = await res.json(); alert(d.error); return; }
       setSubmitted(true);
       setForm({ sender_name: '', sender_phone: '', sender_address: '', receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: '', parcel_description: '', weight: '', delivery_type: '', cod_amount: '' });
+      fetchShipments();
+    } catch (err) { alert(err.message); } finally { setSubmitting(false); }
+  };
+
+  const handleDocketSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API}/docket`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify(docketForm)
+      });
+      if (!res.ok) { const d = await res.json(); alert(d.error); return; }
+      setSubmitted(true);
+      setDocketForm({ receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: '', weight: '', cod_amount: '', sw_tracking_number: '', num_items: '1' });
       fetchShipments();
     } catch (err) { alert(err.message); } finally { setSubmitting(false); }
   };
@@ -400,19 +417,31 @@ export default function ClientDashboard() {
         {/* Pickup Request Tab */}
         {tab === 'pickup' && (
           <div className="max-w-2xl">
+            {/* Sub-tabs */}
+            <div className="flex gap-1 mb-5 bg-gray-100 rounded-xl p-1">
+              <button onClick={() => { setPickupType('pickup'); setSubmitted(false); }}
+                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${pickupType === 'pickup' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                📦 Request Pickup
+              </button>
+              <button onClick={() => { setPickupType('docket'); setSubmitted(false); }}
+                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${pickupType === 'docket' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                📋 Create Docket
+              </button>
+            </div>
+
             {submitted ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
                 <div className="w-20 h-20 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Icon name="delivered" className="w-10 h-10 text-green-500" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Pickup Request Submitted!</h3>
-                <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">We'll contact you shortly to confirm your pickup. You can track the status from your dashboard.</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{pickupType === 'pickup' ? 'Pickup Request Submitted!' : 'Docket Created!'}</h3>
+                <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">{pickupType === 'pickup' ? "We'll contact you shortly to confirm your pickup." : 'Your docket has been created and is now in the sorting system.'}</p>
                 <div className="flex gap-3 justify-center">
                   <button onClick={() => { setSubmitted(false); setTab('dashboard'); }} className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">Back to Dashboard</button>
-                  <button onClick={() => setSubmitted(false)} className="px-5 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-semibold hover:bg-teal-600 transition-colors">Request Another</button>
+                  <button onClick={() => setSubmitted(false)} className="px-5 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-semibold hover:bg-teal-600 transition-colors">Create Another</button>
                 </div>
               </div>
-            ) : (
+            ) : pickupType === 'pickup' ? (
               <form onSubmit={handlePickupRequest} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
                 <div>
                   <h3 className="font-semibold text-gray-900 text-lg">New Pickup Request</h3>
@@ -479,6 +508,66 @@ export default function ClientDashboard() {
 
                 <button type="submit" disabled={submitting} className="w-full px-6 py-3 bg-teal-500 text-white rounded-xl text-sm font-semibold hover:bg-teal-600 transition-colors disabled:opacity-50">
                   {submitting ? 'Submitting...' : 'Request Pickup'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleDocketSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-lg">Create Docket Entry</h3>
+                  <p className="text-sm text-gray-400 mt-1">Enter parcel details to create a docket — sender details auto-filled from your profile</p>
+                </div>
+
+                <div className="bg-blue-50 rounded-xl p-3 flex items-center gap-2 text-xs text-blue-600">
+                  <Icon name="transit" className="w-4 h-4 flex-shrink-0" />
+                  <span>Sender details are taken from your client profile. Receiver details and parcel info are entered below.</span>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl p-4 space-y-4">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Receiver Details</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Receiver Name *</label>
+                      <input type="text" required value={docketForm.receiver_name} onChange={(e) => setDocketForm({...docketForm, receiver_name: e.target.value})} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Receiver Phone *</label>
+                      <input type="text" required value={docketForm.receiver_phone} onChange={(e) => setDocketForm({...docketForm, receiver_phone: e.target.value})} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Address</label>
+                      <input type="text" value={docketForm.receiver_address} onChange={(e) => setDocketForm({...docketForm, receiver_address: e.target.value})} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl p-4 space-y-4">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Parcel Details</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Parcel Type</label>
+                      <input type="text" placeholder="e.g. Document, Package" value={docketForm.parcel_type} onChange={(e) => setDocketForm({...docketForm, parcel_type: e.target.value})} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Number of Items</label>
+                      <input type="number" min="1" value={docketForm.num_items} onChange={(e) => setDocketForm({...docketForm, num_items: e.target.value})} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
+                      <input type="text" placeholder="e.g. 2 kg" value={docketForm.weight} onChange={(e) => setDocketForm({...docketForm, weight: e.target.value})} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">COD Amount (LKR)</label>
+                      <input type="text" inputMode="decimal" placeholder="0.00" value={docketForm.cod_amount} onChange={(e) => setDocketForm({...docketForm, cod_amount: e.target.value})} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">SW Tracking #</label>
+                      <input type="text" placeholder="Optional" value={docketForm.sw_tracking_number} onChange={(e) => setDocketForm({...docketForm, sw_tracking_number: e.target.value})} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white" />
+                    </div>
+                  </div>
+                </div>
+
+                <button type="submit" disabled={submitting} className="w-full px-6 py-3 bg-teal-500 text-white rounded-xl text-sm font-semibold hover:bg-teal-600 transition-colors disabled:opacity-50">
+                  {submitting ? 'Creating...' : 'Create Docket'}
                 </button>
               </form>
             )}

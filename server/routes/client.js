@@ -88,6 +88,36 @@ router.post('/pickup-request', async (req, res) => {
   }
 });
 
+router.post('/docket', async (req, res) => {
+  try {
+    const { receiver_name, receiver_phone, receiver_address,
+      parcel_type, weight, cod_amount, sw_tracking_number, num_items } = req.body;
+    if (!receiver_name || !receiver_name.trim()) return res.status(400).json({ error: 'Receiver name is required' });
+
+    const seq = await query("SELECT 'SW' || LPAD(NEXTVAL('tracking_number_seq')::text, 3, '0') AS tn");
+    const tracking_number = seq.rows[0].tn;
+
+    const clientRes = await query('SELECT contact_person, phone, address FROM clients WHERE id = $1', [req.client.client_id]);
+    const client = clientRes.rows[0] || {};
+
+    const result = await query(`INSERT INTO shipments (client_id, tracking_number,
+      sender_name, sender_phone, sender_address,
+      receiver_name, receiver_phone, receiver_address, origin, destination,
+      parcel_type, weight, num_items, cod_amount, status, sw_tracking_number)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'at_sorting_center',$15) RETURNING *`,
+      [req.client.client_id, tracking_number,
+      client.contact_person || '', client.phone || '', client.address || '',
+      receiver_name, receiver_phone, receiver_address || null, client.address || 'N/A', receiver_address || 'N/A',
+      parcel_type || null, weight || null, num_items || 1, cod_amount || 0, sw_tracking_number || null]);
+
+    await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description)
+      VALUES ($1, 'at_sorting_center', 'At Sorting Center', 'Docket created via client portal')`, [result.rows[0].id]);
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/shipments', async (req, res) => {
   try {
     const result = await query(`SELECT * FROM shipments WHERE client_id = $1 ORDER BY created_at DESC`, [req.client.client_id]);
