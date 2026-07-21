@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 const API = '/api/admin';
 
 const defaultForm = {
-  tracking_number: '', client_id: '',
+  tracking_number: '', sw_tracking_number: '', client_id: '',
   sender_name: '', sender_phone: '', sender_address: '',
   receiver_name: '', receiver_phone: '', receiver_address: '',
   destination: '',
@@ -24,6 +24,8 @@ export default function DocketEntry({ onBack }) {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [pickups, setPickups] = useState([]);
+  const [selectedPickupId, setSelectedPickupId] = useState(null);
+  const [remainingItems, setRemainingItems] = useState(null);
   const [assignForm, setAssignForm] = useState({ id: null, rider_id: '', sorting_area: '' });
 
   const getToken = () => sessionStorage.getItem('swc_token');
@@ -88,6 +90,9 @@ export default function DocketEntry({ onBack }) {
 
   const openNew = () => {
     setEditingId(null);
+    setPickups([]);
+    setSelectedPickupId(null);
+    setRemainingItems(null);
     setForm({ ...defaultForm, docket_date: new Date().toISOString().slice(0, 16) });
     setShowForm(true);
   };
@@ -96,6 +101,7 @@ export default function DocketEntry({ onBack }) {
     setEditingId(s.id);
     setForm({
       tracking_number: s.tracking_number || '',
+      sw_tracking_number: s.sw_tracking_number || '',
       client_id: s.client_id || '',
       sender_name: s.sender_name || '',
       sender_phone: s.sender_phone || '',
@@ -123,6 +129,7 @@ export default function DocketEntry({ onBack }) {
       if (editingId) {
         const body = {
           tracking_number: form.tracking_number,
+          sw_tracking_number: form.sw_tracking_number || null,
           client_id: form.client_id || null,
           sender_name: form.sender_name,
           sender_phone: form.sender_phone,
@@ -150,6 +157,7 @@ export default function DocketEntry({ onBack }) {
         const body = {
           ...form,
           client_id: form.client_id || null,
+          pickup_id: selectedPickupId || null,
           origin: form.sender_address || 'N/A',
           destination: form.destination || form.receiver_address || 'N/A',
           delivery_type: '',
@@ -176,6 +184,9 @@ export default function DocketEntry({ onBack }) {
 
       setShowForm(false);
       setEditingId(null);
+      setPickups([]);
+      setSelectedPickupId(null);
+      setRemainingItems(null);
       setForm(defaultForm);
       fetchItems(search);
     } catch (err) { alert(err.message); } finally { setSaving(false); }
@@ -207,6 +218,61 @@ export default function DocketEntry({ onBack }) {
     fetchItems(search);
   };
 
+  const handlePDF = (s) => {
+    const w = window.open('', '_blank');
+    w.document.write(`
+      <html><head><title>Docket ${s.tracking_number}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+        .header { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h1 { color: #1e3a8a; margin: 0; font-size: 22px; }
+        .header h2 { color: #666; margin: 5px 0 0; font-size: 16px; font-weight: normal; }
+        .info { display: flex; justify-content: space-between; gap: 30px; margin-bottom: 20px; }
+        .box { flex: 1; border: 1px solid #ddd; border-radius: 6px; padding: 12px; }
+        .box h3 { margin: 0 0 8px; font-size: 12px; color: #999; text-transform: uppercase; }
+        .box p { margin: 3px 0; font-size: 14px; }
+        .details { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .details td { padding: 6px 10px; border: 1px solid #eee; font-size: 13px; }
+        .details td:first-child { font-weight: 600; color: #666; width: 140px; background: #f9f9f9; }
+        .footer { text-align: center; color: #999; font-size: 11px; border-top: 1px solid #ddd; padding-top: 15px; }
+        @media print { body { padding: 20px; } }
+      </style></head><body>
+      <div class="header">
+        <h1>STRAIGHTWAY COURIERS</h1>
+        <h2>Docket Entry — ${s.tracking_number}</h2>
+      </div>
+      <div class="info">
+        <div class="box">
+          <h3>Sender</h3>
+          <p><strong>${s.sender_name || ''}</strong></p>
+          <p>${s.sender_phone || ''}</p>
+          <p>${s.sender_address || ''}</p>
+        </div>
+        <div class="box">
+          <h3>Receiver</h3>
+          <p><strong>${s.receiver_name || ''}</strong></p>
+          <p>${s.receiver_phone || ''}</p>
+          <p>${s.receiver_address || ''}</p>
+        </div>
+      </div>
+      <table class="details">
+        <tr><td>Docket #</td><td>${s.tracking_number}</td></tr>
+        ${s.sw_tracking_number ? `<tr><td>SW Tracking #</td><td>${s.sw_tracking_number}</td></tr>` : ''}
+        <tr><td>Destination</td><td>${s.destination || ''}</td></tr>
+        <tr><td>Items</td><td>${s.num_items || 1}</td></tr>
+        <tr><td>Weight</td><td>${s.weight || '-'}</td></tr>
+        <tr><td>COD Amount</td><td>${s.cod_amount ? 'Rs. ' + parseFloat(s.cod_amount).toLocaleString() : '-'}</td></tr>
+        <tr><td>Sorting Area</td><td>${s.sorting_area || '-'}</td></tr>
+        <tr><td>Status</td><td>${s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</td></tr>
+        ${s.special_instructions ? `<tr><td>Instructions</td><td>${s.special_instructions}</td></tr>` : ''}
+      </table>
+      <div class="footer">Generated on ${new Date().toLocaleDateString('en-GB')} — Straightway Couriers</div>
+      <script>window.print()<\/script>
+      </body></html>
+    `);
+    w.document.close();
+  };
+
   const handleClientSelect = (clientId) => {
     const client = clients.find(c => String(c.id) === String(clientId));
     if (client) {
@@ -227,6 +293,8 @@ export default function DocketEntry({ onBack }) {
   const handlePickupSelect = (pickupId) => {
     const pickup = pickups.find(p => String(p.id) === String(pickupId));
     if (pickup) {
+      setSelectedPickupId(pickupId);
+      setRemainingItems(pickup.remaining_items);
       setForm({
         ...form,
         tracking_number: pickup.tracking_number || form.tracking_number,
@@ -238,6 +306,9 @@ export default function DocketEntry({ onBack }) {
         destination: pickup.destination || form.destination,
         special_instructions: pickup.special_instructions || form.special_instructions,
       });
+    } else {
+      setSelectedPickupId(null);
+      setRemainingItems(null);
     }
   };
 
@@ -286,10 +357,17 @@ export default function DocketEntry({ onBack }) {
           {pickups.length > 0 && (
             <div className="mb-4">
               <label className="block text-xs font-medium text-gray-600 mb-1">From Pickup</label>
-              <select onChange={(e) => handlePickupSelect(e.target.value)} className="w-full max-w-md px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
-                <option value="">Select a pickup to auto-fill...</option>
-                {pickups.map(p => <option key={p.id} value={p.id}>{p.tracking_number} — {p.sender_name}</option>)}
-              </select>
+              <div className="flex items-center gap-4">
+                <select onChange={(e) => handlePickupSelect(e.target.value)} className="flex-1 max-w-md px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
+                  <option value="">Select a pickup to auto-fill...</option>
+                  {pickups.map(p => <option key={p.id} value={p.id}>{p.tracking_number} — {p.sender_name}</option>)}
+                </select>
+                {remainingItems !== null && (
+                  <span className="text-sm text-gray-500">
+                    <span className="font-semibold text-brand-600">{remainingItems}</span> parcel{remainingItems !== 1 ? 's' : ''} remaining
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
@@ -308,6 +386,11 @@ export default function DocketEntry({ onBack }) {
               <label className="block text-xs font-medium text-gray-600 mb-1">Date & Time</label>
               <input type="datetime-local" value={form.docket_date} onChange={(e) => setForm({...form, docket_date: e.target.value})}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">SW Tracking #</label>
+              <input type="text" value={form.sw_tracking_number} onChange={(e) => setForm({...form, sw_tracking_number: e.target.value})}
+                placeholder="e.g. SW0001" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             </div>
           </div>
 
@@ -361,7 +444,7 @@ export default function DocketEntry({ onBack }) {
               className="px-5 py-2 bg-brand-500 text-white rounded-lg text-sm font-semibold hover:bg-brand-600 disabled:opacity-50">
               {saving ? 'Saving...' : editingId ? 'Update Docket' : 'Create Docket'}
             </button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setForm(defaultForm); }}
+            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setForm(defaultForm); setPickups([]); setSelectedPickupId(null); setRemainingItems(null); }}
               className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm">Cancel</button>
           </div>
         </form>
@@ -437,12 +520,18 @@ export default function DocketEntry({ onBack }) {
                           <button onClick={() => handleSort(s.id)}
                             className="text-indigo-500 hover:underline text-xs mr-2">Sort</button>
                         )}
+                        <button onClick={() => handlePDF(s)}
+                          className="text-green-500 hover:underline text-xs mr-2">PDF</button>
                         <button onClick={() => handleDelete(s.id, s.tracking_number)}
                           className="text-red-400 hover:text-red-600 text-xs">Delete</button>
                       </>
                     )}
                     {s.status === 'sorted' && (
-                      <span className="text-xs text-gray-400 italic">Sorted</span>
+                      <>
+                        <button onClick={() => handlePDF(s)}
+                          className="text-green-500 hover:underline text-xs mr-2">PDF</button>
+                        <span className="text-xs text-gray-400 italic">Sorted</span>
+                      </>
                     )}
                   </td>
                 </tr>

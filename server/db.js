@@ -150,6 +150,8 @@ export async function initDB() {
   await addCol('shipments', 'delivery_remarks', 'TEXT');
   await addCol('shipments', 'pickup_scheduled_at', 'TIMESTAMP');
   await addCol('shipments', 'pickup_completed_at', 'TIMESTAMP');
+  await addCol('shipments', 'sw_tracking_number', 'TEXT');
+  await addCol('shipments', 'pickup_id', 'INTEGER REFERENCES shipments(id)');
 
   // ─── Tracking Events ───────────────────────────────────────────────
   await pool.query(`

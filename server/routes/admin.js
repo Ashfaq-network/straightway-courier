@@ -168,12 +168,12 @@ router.get('/shipments/tracking/:tracking_number/events', async (req, res) => {
 router.post('/shipments', async (req, res) => {
   try {
     const {
-      client_id, tracking_number, sender_name, sender_phone, sender_email,
+      client_id, tracking_number, sw_tracking_number, sender_name, sender_phone, sender_email,
       sender_address, receiver_name, receiver_phone, receiver_email, receiver_address,
       pickup_address, delivery_address, origin, destination,
       parcel_type, parcel_description, num_items, weight, delivery_type,
       cod_amount, delivery_charge, payment_status, special_instructions,
-      estimated_delivery, notes, status
+      estimated_delivery, notes, status, pickup_id
     } = req.body;
 
     if (!sender_name || !sender_name.trim()) return res.status(400).json({ error: 'Sender name is required' });
@@ -183,22 +183,22 @@ router.post('/shipments', async (req, res) => {
     if (!tracking_number || !tracking_number.trim()) return res.status(400).json({ error: 'Tracking number is required' });
 
     const result = await query(`
-      INSERT INTO shipments (client_id, tracking_number, sender_name, sender_phone,
+      INSERT INTO shipments (client_id, tracking_number, sw_tracking_number, sender_name, sender_phone,
         sender_email, sender_address, receiver_name, receiver_phone, receiver_email,
         receiver_address, pickup_address, delivery_address, origin, destination,
         parcel_type, parcel_description, num_items, weight, delivery_type,
         cod_amount, delivery_charge, payment_status, special_instructions,
-        estimated_delivery, notes, status)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
+        estimated_delivery, notes, status, pickup_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
       RETURNING *
-    `, [client_id || null, tracking_number, sender_name, sender_phone || null,
+    `, [client_id || null, tracking_number, sw_tracking_number || null, sender_name, sender_phone || null,
       sender_email || null, sender_address || null, receiver_name, receiver_phone || null,
       receiver_email || null, receiver_address || null, pickup_address || null,
       delivery_address || null, origin, destination, parcel_type || null,
       parcel_description || null, num_items || 1, weight || null, delivery_type || null,
       cod_amount || 0, delivery_charge || 0, payment_status || 'pending',
       special_instructions || null, estimated_delivery || null, notes || null,
-      status || 'pickup_requested'
+      status || 'pickup_requested', pickup_id || null
     ]);
 
     const shipment = result.rows[0];
@@ -224,7 +224,8 @@ router.put('/shipments/:id', async (req, res) => {
       'parcel_type','parcel_description','num_items','weight','delivery_type',
       'cod_amount','delivery_charge','payment_status','special_instructions',
       'estimated_delivery','notes','status','sorting_area',
-      'pickup_driver_id','delivery_rider_id','pickup_scheduled_at']) {
+      'pickup_driver_id','delivery_rider_id','pickup_scheduled_at',
+      'sw_tracking_number','pickup_id']) {
       if (req.body[key] !== undefined) {
         fields.push(`${key}=$${idx}`);
         values.push(req.body[key] === '' ? null : req.body[key]);
@@ -416,6 +417,7 @@ router.get('/pickups', async (req, res) => {
     const { status, search, client_id } = req.query;
     let sql = `SELECT s.*, d.name AS driver_name, d.phone AS driver_phone,
       COALESCE(c.company_name, c.contact_person) AS client_name,
+      s.num_items - COALESCE((SELECT SUM(ss.num_items) FROM shipments ss WHERE ss.pickup_id = s.id), 0) AS remaining_items,
       'shipment' AS _type
       FROM shipments s
       LEFT JOIN delivery_staff d ON s.pickup_driver_id = d.id
