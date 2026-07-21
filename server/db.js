@@ -152,6 +152,7 @@ export async function initDB() {
   await addCol('shipments', 'pickup_completed_at', 'TIMESTAMP');
   await addCol('shipments', 'sw_tracking_number', 'TEXT');
   await addCol('shipments', 'pickup_id', 'INTEGER REFERENCES shipments(id)');
+  await pool.query('ALTER TABLE shipments DROP CONSTRAINT IF EXISTS shipments_tracking_number_key');
 
   // ─── Tracking Events ───────────────────────────────────────────────
   await pool.query(`
