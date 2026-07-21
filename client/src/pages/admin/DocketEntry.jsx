@@ -221,20 +221,7 @@ export default function DocketEntry({ onBack }) {
           const p = (await pr.json()).filter(p => p._type === 'shipment');
           setPickups(p);
           if (p.length === 1) {
-            const nextPickup = p[0];
-            setSelectedPickupId(nextPickup.id);
-            setForm({
-              ...defaultForm,
-              tracking_number: nextPickup.tracking_number || '',
-              client_id: form.client_id,
-              sender_name: nextPickup.sender_name || form.sender_name,
-              sender_phone: nextPickup.sender_phone || form.sender_phone,
-              sender_address: nextPickup.sender_address || form.sender_address,
-              num_items: '1',
-              weight: nextPickup.weight || '',
-              special_instructions: nextPickup.special_instructions || '',
-              docket_date: new Date().toISOString().slice(0, 16),
-            });
+            fillFromPickup(p[0], form.client_id);
             return;
           }
         }
@@ -350,7 +337,7 @@ export default function DocketEntry({ onBack }) {
         const p = data.filter(p => p._type === 'shipment');
         setPickups(p);
         if (p.length === 1) {
-          handlePickupSelect(String(p[0].id));
+          fillFromPickup(p[0], clientId);
         } else if (p.length === 0) {
           setSelectedPickupId(null);
         }
@@ -380,9 +367,25 @@ export default function DocketEntry({ onBack }) {
         destination: pickup.destination || form.destination,
         special_instructions: pickup.special_instructions || form.special_instructions,
       });
-    } else {
-      setSelectedPickupId(null);
     }
+  };
+
+  const fillFromPickup = (pickup, clientId) => {
+    if (!pickup) return;
+    setSelectedPickupId(pickup.id);
+    setForm({
+      ...defaultForm,
+      tracking_number: pickup.tracking_number || '',
+      client_id: clientId || '',
+      sender_name: pickup.sender_name || '',
+      sender_phone: pickup.sender_phone || '',
+      sender_address: pickup.sender_address || '',
+      num_items: '1',
+      weight: pickup.weight || '',
+      destination: pickup.destination || '',
+      special_instructions: pickup.special_instructions || '',
+      docket_date: new Date().toISOString().slice(0, 16),
+    });
   };
 
   return (
