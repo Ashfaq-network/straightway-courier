@@ -477,14 +477,20 @@ router.put('/pickups/:id/assign', async (req, res) => {
 // ─── Sorting ────────────────────────────────────────────────────────
 router.get('/sorting', async (req, res) => {
   try {
-    const { area } = req.query;
+    const { area, search } = req.query;
     let sql = `SELECT s.*, d.name AS rider_name
       FROM shipments s LEFT JOIN delivery_staff d ON s.delivery_rider_id = d.id
       WHERE s.status IN ('at_sorting_center','sorted')`;
     const params = [];
-    if (area) { sql += ' AND s.sorting_area ILIKE $1'; params.push(`%${area}%`); }
+    let idx = 1;
+    if (area) { sql += ` AND s.sorting_area ILIKE $${idx}`; params.push(`%${area}%`); idx++; }
+    if (search) {
+      sql += ` AND (s.tracking_number ILIKE $${idx} OR s.sender_name ILIKE $${idx} OR s.receiver_name ILIKE $${idx} OR s.sender_phone ILIKE $${idx} OR s.receiver_phone ILIKE $${idx} OR s.destination ILIKE $${idx})`;
+      params.push(`%${search}%`);
+      idx++;
+    }
     sql += ' ORDER BY s.updated_at DESC';
-    const result = await query(sql, params.length ? params : undefined);
+    const result = await query(sql, params);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });

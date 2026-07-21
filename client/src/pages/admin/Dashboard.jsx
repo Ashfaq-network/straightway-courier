@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ShipmentForm from './ShipmentForm';
 import Clients from './Clients';
 import Pickups from './Pickups';
-import Sorting from './Sorting';
+import DocketEntry from './DocketEntry';
 import Deliveries from './Deliveries';
 import COD from './COD';
 import Reports from './Reports';
@@ -119,7 +119,7 @@ export default function AdminDashboard() {
     { id: 'clients', label: 'Clients' },
     { id: 'staff', label: 'Staff' },
     { id: 'pickups', label: 'Pickups' },
-    { id: 'sorting', label: 'Sorting' },
+    { id: 'docket-entry', label: 'Docket Entry' },
     { id: 'deliveries', label: 'Deliveries' },
     { id: 'cod', label: 'COD' },
     { id: 'reports', label: 'Reports' },
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
 
   if (tab === 'clients') return <Clients onBack={() => setTab('dashboard')} />;
   if (tab === 'pickups') return <Pickups onBack={() => setTab('dashboard')} />;
-  if (tab === 'sorting') return <Sorting onBack={() => setTab('dashboard')} />;
+  if (tab === 'docket-entry') return <DocketEntry onBack={() => setTab('dashboard')} />;
   if (tab === 'deliveries') return <Deliveries onBack={() => setTab('dashboard')} />;
   if (tab === 'cod') return <COD onBack={() => setTab('dashboard')} />;
   if (tab === 'reports') return <Reports onBack={() => setTab('dashboard')} />;
