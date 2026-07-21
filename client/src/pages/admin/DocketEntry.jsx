@@ -473,6 +473,7 @@ export default function DocketEntry({ onBack }) {
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-gray-50 rounded-xl p-6 border border-gray-100 mb-6">
           <h3 className="font-semibold text-gray-900 mb-4">{editingId ? 'Edit Docket Entry' : 'New Docket Entry'}</h3>
+          {!editingId && <div className="mb-4 text-xs text-gray-500">Docket #: <span className="font-semibold text-amber-600">{form.tracking_number}</span></div>}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
@@ -508,6 +509,7 @@ export default function DocketEntry({ onBack }) {
                 Pickup: <span className="font-semibold text-brand-600">{p.tracking_number}</span>
                 {' | '}Parcels: <span className="font-semibold text-brand-600">{p.num_items}</span>
                 {p.remaining_items != null && <> ({p.remaining_items} remaining)</>}
+                {' | '}Docket #: <span className="font-semibold text-amber-600">{form.tracking_number}</span>
               </div>
             ) : null;
           })()}
