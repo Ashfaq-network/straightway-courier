@@ -10,8 +10,8 @@ const statusColors = {
 const defaultPickupForm = {
   tracking_number: '', client_id: '',
   sender_name: '', sender_phone: '', sender_address: '',
-  receiver_name: '', receiver_phone: '', receiver_address: '',
   origin: '', destination: '', parcel_type: '',
+  num_items: 1, pickup_scheduled_at: '', pickup_driver_id: '',
 };
 
 export default function Pickups({ onBack }) {
@@ -76,15 +76,44 @@ export default function Pickups({ onBack }) {
         body: JSON.stringify({
           ...pickupForm,
           client_id: pickupForm.client_id || null,
-          num_items: 1, delivery_type: '', cod_amount: '', delivery_charge: '',
+          receiver_name: pickupForm.sender_name, receiver_phone: pickupForm.sender_phone,
+          delivery_type: '', cod_amount: '', delivery_charge: '',
           payment_status: 'pending', status: 'pickup_requested',
         })
       });
       if (!res.ok) { const d = await res.json(); alert(d.error); return; }
+      const shipment = await res.json();
+
+      if (pickupForm.pickup_driver_id || pickupForm.pickup_scheduled_at) {
+        await fetch(`${API}/pickups/${shipment.id}/assign`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+          body: JSON.stringify({
+            driver_id: pickupForm.pickup_driver_id ? parseInt(pickupForm.pickup_driver_id) : null,
+            scheduled_at: pickupForm.pickup_scheduled_at || null,
+          })
+        });
+      }
+
       setShowForm(false);
       setPickupForm(defaultPickupForm);
       fetchPickups();
     } catch (err) { alert(err.message); } finally { setCreating(false); }
+  };
+
+  const handleClientSelect = (clientId) => {
+    const client = clients.find(c => String(c.id) === String(clientId));
+    if (client) {
+      setPickupForm({
+        ...pickupForm,
+        client_id: clientId,
+        sender_name: client.contact_person || '',
+        sender_phone: client.phone || '',
+        sender_address: client.address || '',
+      });
+    } else {
+      setPickupForm({ ...pickupForm, client_id: '' });
+    }
   };
 
   const handleAssign = async (e) => {
@@ -120,14 +149,14 @@ export default function Pickups({ onBack }) {
       {showForm && (
         <form onSubmit={handlePickupSubmit} className="bg-gray-50 rounded-xl p-6 border border-gray-100 mb-6">
           <h3 className="font-semibold text-gray-900 mb-4">New Pickup (PC Series)</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Tracking Number</label>
               <input type="text" readOnly value={pickupForm.tracking_number} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-bold text-brand-600 bg-white" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Client</label>
-              <select value={pickupForm.client_id} onChange={(e) => setPickupForm({...pickupForm, client_id: e.target.value})}
+              <select value={pickupForm.client_id} onChange={(e) => handleClientSelect(e.target.value)}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
                 <option value="">Walk-in / No Client</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.company_name || c.contact_person}</option>)}
@@ -138,29 +167,21 @@ export default function Pickups({ onBack }) {
               <input type="text" placeholder="e.g. Document, Package" value={pickupForm.parcel_type} onChange={(e) => setPickupForm({...pickupForm, parcel_type: e.target.value})}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">Sender</h4>
-              <div className="space-y-2">
-                <input type="text" placeholder="Name *" required value={pickupForm.sender_name} onChange={(e) => setPickupForm({...pickupForm, sender_name: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                <input type="text" placeholder="Phone *" required value={pickupForm.sender_phone} onChange={(e) => setPickupForm({...pickupForm, sender_phone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                <input type="text" placeholder="Address" value={pickupForm.sender_address} onChange={(e) => setPickupForm({...pickupForm, sender_address: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-              </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">No. of Parcels</label>
+              <input type="number" min="1" value={pickupForm.num_items} onChange={(e) => setPickupForm({...pickupForm, num_items: parseInt(e.target.value) || 1})}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             </div>
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">Receiver</h4>
-              <div className="space-y-2">
-                <input type="text" placeholder="Name *" required value={pickupForm.receiver_name} onChange={(e) => setPickupForm({...pickupForm, receiver_name: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                <input type="text" placeholder="Phone *" required value={pickupForm.receiver_phone} onChange={(e) => setPickupForm({...pickupForm, receiver_phone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                <input type="text" placeholder="Address" value={pickupForm.receiver_address} onChange={(e) => setPickupForm({...pickupForm, receiver_address: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-              </div>
+          </div>
+          <div className="border border-gray-200 rounded-lg p-4 bg-white mb-4">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">Sender Details</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <input type="text" placeholder="Name *" required value={pickupForm.sender_name} onChange={(e) => setPickupForm({...pickupForm, sender_name: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              <input type="text" placeholder="Phone *" required value={pickupForm.sender_phone} onChange={(e) => setPickupForm({...pickupForm, sender_phone: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              <input type="text" placeholder="Address" value={pickupForm.sender_address} onChange={(e) => setPickupForm({...pickupForm, sender_address: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -173,6 +194,21 @@ export default function Pickups({ onBack }) {
               <label className="block text-xs font-medium text-gray-600 mb-1">Destination *</label>
               <input type="text" required value={pickupForm.destination} onChange={(e) => setPickupForm({...pickupForm, destination: e.target.value})}
                 placeholder="e.g. Kandy" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Pickup</label>
+              <input type="datetime-local" value={pickupForm.pickup_scheduled_at} onChange={(e) => setPickupForm({...pickupForm, pickup_scheduled_at: e.target.value})}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Pickup Driver</label>
+              <select value={pickupForm.pickup_driver_id} onChange={(e) => setPickupForm({...pickupForm, pickup_driver_id: e.target.value})}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
+                <option value="">Select driver</option>
+                {drivers.map(d => <option key={d.id} value={d.id}>{d.name} ({d.phone})</option>)}
+              </select>
             </div>
           </div>
           <div className="flex gap-2">
