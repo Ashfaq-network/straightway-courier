@@ -64,11 +64,11 @@ router.get('/stats', async (req, res) => {
     const returned = await query("SELECT COUNT(*) FROM shipments WHERE status = 'returned_to_sender'");
     const todayPickups = await query("SELECT COUNT(*) FROM shipments WHERE DATE(pickup_scheduled_at) = CURRENT_DATE");
     const todayDeliveries = await query("SELECT COUNT(*) FROM shipments WHERE status = 'delivered' AND DATE(delivered_at) = CURRENT_DATE");
-    const totalCod = await query("SELECT COALESCE(SUM(cod_amount), 0) AS value FROM shipments WHERE payment_status = 'cod' AND status NOT IN ('pickup_requested','picked_up')");
+    const totalCod = await query("SELECT COALESCE(SUM(cod_amount), 0) AS value FROM shipments WHERE cod_amount > 0 AND status NOT IN ('pickup_requested','picked_up')");
     const totalCharges = await query("SELECT COALESCE(SUM(delivery_charge), 0) AS value FROM shipments WHERE status NOT IN ('pickup_requested','picked_up')");
     const activeRiders = await query("SELECT COUNT(*) FROM delivery_staff WHERE role IN ('pickup_driver','delivery_rider') AND is_active = true");
     const totalClients = await query("SELECT COUNT(*) FROM clients WHERE is_active = true");
-    const pendingCod = await query("SELECT COALESCE(SUM(cod_amount), 0) AS value FROM shipments WHERE payment_status = 'cod' AND status NOT IN ('pickup_requested','picked_up','delivered')");
+    const pendingCod = await query("SELECT COALESCE(SUM(cod_amount), 0) AS value FROM shipments WHERE cod_amount > 0 AND status NOT IN ('pickup_requested','picked_up','delivered')");
 
     res.json({
       total: parseInt(total.rows[0].count),
@@ -652,7 +652,7 @@ router.get('/reports/daily', async (req, res) => {
         COUNT(*) FILTER (WHERE status IN ('pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery')) AS pending_parcels,
         COUNT(*) FILTER (WHERE status = 'failed_delivery') AS failed_deliveries,
         COUNT(*) FILTER (WHERE status = 'returned_to_sender') AS returned_parcels,
-        COALESCE(SUM(cod_amount) FILTER (WHERE payment_status = 'cod' AND status NOT IN ('pickup_requested','picked_up')), 0) AS total_cod,
+        COALESCE(SUM(cod_amount) FILTER (WHERE cod_amount > 0 AND status NOT IN ('pickup_requested','picked_up')), 0) AS total_cod,
         COALESCE(SUM(delivery_charge) FILTER (WHERE status NOT IN ('pickup_requested','picked_up')), 0) AS total_charges
         FROM shipments WHERE DATE(created_at) = $1`;
       params = [date];
@@ -662,7 +662,7 @@ router.get('/reports/daily', async (req, res) => {
         COUNT(*) FILTER (WHERE status IN ('pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery')) AS pending_parcels,
         COUNT(*) FILTER (WHERE status = 'failed_delivery') AS failed_deliveries,
         COUNT(*) FILTER (WHERE status = 'returned_to_sender') AS returned_parcels,
-        COALESCE(SUM(cod_amount) FILTER (WHERE payment_status = 'cod' AND status NOT IN ('pickup_requested','picked_up')), 0) AS total_cod,
+        COALESCE(SUM(cod_amount) FILTER (WHERE cod_amount > 0 AND status NOT IN ('pickup_requested','picked_up')), 0) AS total_cod,
         COALESCE(SUM(delivery_charge) FILTER (WHERE status NOT IN ('pickup_requested','picked_up')), 0) AS total_charges
         FROM shipments WHERE DATE(created_at) = CURRENT_DATE`;
       params = undefined;
@@ -682,7 +682,7 @@ router.get('/reports/monthly', async (req, res) => {
       SELECT DATE(created_at) AS day, COUNT(*) AS total,
         COUNT(*) FILTER (WHERE status = 'delivered') AS delivered,
         COALESCE(SUM(delivery_charge) FILTER (WHERE status NOT IN ('pickup_requested','picked_up')), 0) AS revenue,
-        COALESCE(SUM(cod_amount) FILTER (WHERE payment_status = 'cod' AND status NOT IN ('pickup_requested','picked_up')), 0) AS cod_total
+        COALESCE(SUM(cod_amount) FILTER (WHERE cod_amount > 0 AND status NOT IN ('pickup_requested','picked_up')), 0) AS cod_total
       FROM shipments
       WHERE EXTRACT(YEAR FROM created_at) = $1 AND EXTRACT(MONTH FROM created_at) = $2
       GROUP BY DATE(created_at) ORDER BY day
