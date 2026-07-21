@@ -6,8 +6,9 @@ const defaultForm = {
   tracking_number: '', client_id: '',
   sender_name: '', sender_phone: '', sender_address: '',
   receiver_name: '', receiver_phone: '', receiver_address: '',
-  origin: '', destination: '',
-  parcel_type: '', num_items: '', weight: '',
+  destination: '',
+  num_items: '', weight: '', cod_amount: '',
+  docket_date: new Date().toISOString().slice(0, 16),
   sorting_area: '', delivery_rider_id: '',
   special_instructions: '',
 };
@@ -74,7 +75,7 @@ export default function DocketEntry({ onBack }) {
 
   const openNew = () => {
     setEditingId(null);
-    setForm(defaultForm);
+    setForm({ ...defaultForm, docket_date: new Date().toISOString().slice(0, 16) });
     setShowForm(true);
   };
 
@@ -89,11 +90,11 @@ export default function DocketEntry({ onBack }) {
       receiver_name: s.receiver_name || '',
       receiver_phone: s.receiver_phone || '',
       receiver_address: s.receiver_address || '',
-      origin: s.origin || '',
       destination: s.destination || '',
-      parcel_type: s.parcel_type || '',
       num_items: s.num_items || '',
       weight: s.weight || '',
+      cod_amount: s.cod_amount || '',
+      docket_date: s.pickup_scheduled_at ? s.pickup_scheduled_at.slice(0, 16) : new Date().toISOString().slice(0, 16),
       sorting_area: s.sorting_area || '',
       delivery_rider_id: s.delivery_rider_id || '',
       special_instructions: s.special_instructions || '',
@@ -106,19 +107,27 @@ export default function DocketEntry({ onBack }) {
     e.preventDefault();
     setSaving(true);
     try {
-      const body = {
-        ...form,
-        client_id: form.client_id || null,
-        origin: form.origin || form.sender_address || 'N/A',
-        destination: form.destination || form.receiver_address || 'N/A',
-        delivery_type: '',
-        cod_amount: '', delivery_charge: '',
-        payment_status: 'pending',
-        status: 'at_sorting_center',
-      };
-
       let shipment;
       if (editingId) {
+        const body = {
+          tracking_number: form.tracking_number,
+          client_id: form.client_id || null,
+          sender_name: form.sender_name,
+          sender_phone: form.sender_phone,
+          sender_address: form.sender_address,
+          receiver_name: form.receiver_name,
+          receiver_phone: form.receiver_phone,
+          receiver_address: form.receiver_address,
+          num_items: form.num_items,
+          weight: form.weight,
+          cod_amount: form.cod_amount || null,
+          origin: form.sender_address || 'N/A',
+          destination: form.destination || form.receiver_address || 'N/A',
+          pickup_scheduled_at: form.docket_date || null,
+          special_instructions: form.special_instructions,
+          sorting_area: form.sorting_area,
+          delivery_rider_id: form.delivery_rider_id,
+        };
         const res = await fetch(`${API}/shipments/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
@@ -126,18 +135,17 @@ export default function DocketEntry({ onBack }) {
         });
         if (!res.ok) { const d = await res.json(); alert(d.error); return; }
         shipment = await res.json();
-
-        if (form.delivery_rider_id || form.sorting_area) {
-          await fetch(`${API}/sorting/${editingId}/assign`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-            body: JSON.stringify({
-              rider_id: form.delivery_rider_id ? parseInt(form.delivery_rider_id) : null,
-              sorting_area: form.sorting_area || null,
-            })
-          });
-        }
       } else {
+        const body = {
+          ...form,
+          client_id: form.client_id || null,
+          origin: form.sender_address || 'N/A',
+          destination: form.destination || form.receiver_address || 'N/A',
+          delivery_type: '',
+          delivery_charge: '',
+          payment_status: 'pending',
+          status: 'at_sorting_center',
+        };
         const res = await fetch(`${API}/shipments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
@@ -224,13 +232,13 @@ export default function DocketEntry({ onBack }) {
           <h3 className="font-semibold text-gray-900 mb-4">{editingId ? 'Edit Docket Entry' : 'New Docket Entry'}</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
-            <div>
+            <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Docket / Tracking #</label>
               <div className="flex gap-2">
                 <input type="text" required value={form.tracking_number} onChange={(e) => setForm({...form, tracking_number: e.target.value})}
                   placeholder="e.g. PC001" className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-bold text-brand-600" />
                 <button type="button" onClick={generateTracking}
-                  className="px-3 py-2.5 bg-gray-200 text-gray-700 rounded-lg text-xs hover:bg-gray-300">Generate</button>
+                  className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 font-medium">Generate</button>
               </div>
             </div>
             <div>
@@ -242,13 +250,31 @@ export default function DocketEntry({ onBack }) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Parcel Type</label>
-              <input type="text" placeholder="e.g. Package" value={form.parcel_type} onChange={(e) => setForm({...form, parcel_type: e.target.value})}
+              <label className="block text-xs font-medium text-gray-600 mb-1">No. of Items</label>
+              <input type="text" inputMode="numeric" placeholder="e.g. 2" value={form.num_items} onChange={(e) => setForm({...form, num_items: e.target.value})}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Weight (kg)</label>
+              <input type="text" inputMode="decimal" placeholder="e.g. 1.5" value={form.weight} onChange={(e) => setForm({...form, weight: e.target.value})}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">No. of Items</label>
-              <input type="text" inputMode="numeric" placeholder="e.g. 2" value={form.num_items} onChange={(e) => setForm({...form, num_items: e.target.value})}
+              <label className="block text-xs font-medium text-gray-600 mb-1">Destination</label>
+              <input type="text" value={form.destination} onChange={(e) => setForm({...form, destination: e.target.value})}
+                placeholder="e.g. Kandy" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">COD Amount (Rs.)</label>
+              <input type="text" inputMode="numeric" placeholder="e.g. 5000" value={form.cod_amount} onChange={(e) => setForm({...form, cod_amount: e.target.value})}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Date & Time</label>
+              <input type="datetime-local" value={form.docket_date} onChange={(e) => setForm({...form, docket_date: e.target.value})}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             </div>
           </div>
@@ -275,19 +301,6 @@ export default function DocketEntry({ onBack }) {
                 <input type="text" placeholder="Address" value={form.receiver_address} onChange={(e) => setForm({...form, receiver_address: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
               </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Origin</label>
-              <input type="text" value={form.origin} onChange={(e) => setForm({...form, origin: e.target.value})}
-                placeholder="e.g. Colombo" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Destination</label>
-              <input type="text" value={form.destination} onChange={(e) => setForm({...form, destination: e.target.value})}
-                placeholder="e.g. Kandy" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             </div>
           </div>
 
