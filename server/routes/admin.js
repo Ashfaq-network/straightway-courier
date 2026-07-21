@@ -404,14 +404,23 @@ router.post('/clients/:id/create-login', async (req, res) => {
 // ─── Pickup Management ──────────────────────────────────────────────
 router.get('/pickups', async (req, res) => {
   try {
-    const { status } = req.query;
-    let sql = `SELECT s.*, d.name AS driver_name, d.phone AS driver_phone
-      FROM shipments s LEFT JOIN delivery_staff d ON s.pickup_driver_id = d.id
+    const { status, search } = req.query;
+    let sql = `SELECT s.*, d.name AS driver_name, d.phone AS driver_phone,
+      c.company_name AS client_name
+      FROM shipments s
+      LEFT JOIN delivery_staff d ON s.pickup_driver_id = d.id
+      LEFT JOIN clients c ON s.client_id = c.id
       WHERE s.status IN ('pickup_requested','picked_up')`;
     const params = [];
-    if (status) { sql += ' AND s.status = $1'; params.push(status); }
+    let idx = 1;
+    if (status) { sql += ` AND s.status = $${idx}`; params.push(status); idx++; }
+    if (search) {
+      sql += ` AND (c.company_name ILIKE $${idx} OR c.contact_person ILIKE $${idx} OR s.sender_name ILIKE $${idx} OR s.receiver_name ILIKE $${idx} OR s.tracking_number ILIKE $${idx} OR s.sender_phone ILIKE $${idx})`;
+      params.push(`%${search}%`);
+      idx++;
+    }
     sql += ' ORDER BY s.created_at DESC';
-    const result = await query(sql, params.length ? params : undefined);
+    const result = await query(sql, params);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });

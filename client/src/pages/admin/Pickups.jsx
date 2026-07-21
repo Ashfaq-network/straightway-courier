@@ -11,15 +11,18 @@ export default function Pickups({ onBack }) {
   const [pickups, setPickups] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [assignForm, setAssignForm] = useState({ id: null, driver_id: '', scheduled_at: '' });
 
   const getToken = () => sessionStorage.getItem('swc_token');
 
   useEffect(() => { fetchPickups(); fetchDrivers(); }, []);
 
-  const fetchPickups = async () => {
+  const fetchPickups = async (q) => {
     try {
-      const res = await fetch(`${API}/pickups`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      const params = new URLSearchParams();
+      if (q) params.set('search', q);
+      const res = await fetch(`${API}/pickups?${params}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
       if (res.ok) setPickups(await res.json());
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
@@ -57,6 +60,13 @@ export default function Pickups({ onBack }) {
       <button onClick={onBack} className="text-brand-500 hover:underline text-sm mb-4 inline-block">&larr; Back to Dashboard</button>
       <h2 className="text-xl font-bold text-gray-900 mb-6">Pickup Management</h2>
 
+      <div className="mb-4">
+        <input type="text" placeholder="Search by client, sender, tracking number..." value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { setLoading(true); fetchPickups(search); } }}
+          className="w-full max-w-md px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+      </div>
+
       {assignForm.id && (
         <form onSubmit={handleAssign} className="bg-gray-50 rounded-xl p-6 border border-gray-100 mb-6">
           <h3 className="font-semibold text-gray-900 mb-4">Assign Driver</h3>
@@ -82,6 +92,7 @@ export default function Pickups({ onBack }) {
             <thead className="bg-gray-50 text-gray-600">
               <tr>
                 <th className="text-left px-4 py-3 font-medium">Tracking #</th>
+                <th className="text-left px-4 py-3 font-medium">Client</th>
                 <th className="text-left px-4 py-3 font-medium">Sender</th>
                 <th className="text-left px-4 py-3 font-medium">Pickup Address</th>
                 <th className="text-left px-4 py-3 font-medium">Driver</th>
@@ -94,6 +105,7 @@ export default function Pickups({ onBack }) {
               {pickups.map(p => (
                 <tr key={p.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">{p.tracking_number}</td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">{p.client_name || <span className="text-gray-400">Walk-in</span>}</td>
                   <td className="px-4 py-3 text-gray-600">{p.sender_name}<br/><span className="text-xs">{p.sender_phone}</span></td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{p.pickup_address || p.sender_address || '-'}</td>
                   <td className="px-4 py-3 text-gray-600">{p.driver_name || <span className="text-gray-400">Unassigned</span>}</td>
