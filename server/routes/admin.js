@@ -41,6 +41,15 @@ router.get('/generate-tracking', async (req, res) => {
   }
 });
 
+router.get('/generate-pc-tracking', async (req, res) => {
+  try {
+    const seq = await query("SELECT 'PC' || LPAD(NEXTVAL('pc_tracking_number_seq')::text, 3, '0') AS tn");
+    res.json({ tracking_number: seq.rows[0].tn });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Dashboard Stats (expanded) ─────────────────────────────────────
 router.get('/stats', async (req, res) => {
   try {

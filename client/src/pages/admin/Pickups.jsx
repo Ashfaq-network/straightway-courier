@@ -7,16 +7,27 @@ const statusColors = {
   picked_up: 'bg-orange-100 text-orange-800',
 };
 
+const defaultPickupForm = {
+  tracking_number: '', client_id: '',
+  sender_name: '', sender_phone: '', sender_address: '',
+  receiver_name: '', receiver_phone: '', receiver_address: '',
+  origin: '', destination: '', parcel_type: '',
+};
+
 export default function Pickups({ onBack }) {
   const [pickups, setPickups] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [pickupForm, setPickupForm] = useState(defaultPickupForm);
+  const [creating, setCreating] = useState(false);
   const [assignForm, setAssignForm] = useState({ id: null, driver_id: '', scheduled_at: '' });
 
   const getToken = () => sessionStorage.getItem('swc_token');
 
-  useEffect(() => { fetchPickups(); fetchDrivers(); }, []);
+  useEffect(() => { fetchPickups(); fetchDrivers(); fetchClients(); }, []);
 
   const fetchPickups = async (q) => {
     try {
@@ -35,6 +46,45 @@ export default function Pickups({ onBack }) {
         setDrivers(data.filter(s => s.role === 'pickup_driver' && s.is_active));
       }
     } catch (err) { console.error(err); }
+  };
+
+  const fetchClients = async () => {
+    try {
+      const res = await fetch(`${API}/clients`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (res.ok) setClients(await res.json());
+    } catch (err) { console.error(err); }
+  };
+
+  const openNewPickup = async () => {
+    try {
+      const res = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (res.ok) {
+        const data = await res.json();
+        setPickupForm({ ...defaultPickupForm, tracking_number: data.tracking_number });
+        setShowForm(true);
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handlePickupSubmit = async (e) => {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      const res = await fetch(`${API}/shipments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({
+          ...pickupForm,
+          client_id: pickupForm.client_id || null,
+          num_items: 1, delivery_type: '', cod_amount: '', delivery_charge: '',
+          payment_status: 'pending', status: 'pickup_requested',
+        })
+      });
+      if (!res.ok) { const d = await res.json(); alert(d.error); return; }
+      setShowForm(false);
+      setPickupForm(defaultPickupForm);
+      fetchPickups();
+    } catch (err) { alert(err.message); } finally { setCreating(false); }
   };
 
   const handleAssign = async (e) => {
@@ -57,8 +107,84 @@ export default function Pickups({ onBack }) {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-      <button onClick={onBack} className="text-brand-500 hover:underline text-sm mb-4 inline-block">&larr; Back to Dashboard</button>
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Pickup Management</h2>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <button onClick={onBack} className="text-brand-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</button>
+          <h2 className="text-xl font-bold text-gray-900">Pickup Management</h2>
+        </div>
+        <button onClick={openNewPickup} className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm font-semibold hover:bg-brand-600">
+          + New Pickup
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handlePickupSubmit} className="bg-gray-50 rounded-xl p-6 border border-gray-100 mb-6">
+          <h3 className="font-semibold text-gray-900 mb-4">New Pickup (PC Series)</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Tracking Number</label>
+              <input type="text" readOnly value={pickupForm.tracking_number} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-bold text-brand-600 bg-white" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Client</label>
+              <select value={pickupForm.client_id} onChange={(e) => setPickupForm({...pickupForm, client_id: e.target.value})}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
+                <option value="">Walk-in / No Client</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.company_name || c.contact_person}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Parcel Type</label>
+              <input type="text" placeholder="e.g. Document, Package" value={pickupForm.parcel_type} onChange={(e) => setPickupForm({...pickupForm, parcel_type: e.target.value})}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div className="border border-gray-200 rounded-lg p-4 bg-white">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">Sender</h4>
+              <div className="space-y-2">
+                <input type="text" placeholder="Name *" required value={pickupForm.sender_name} onChange={(e) => setPickupForm({...pickupForm, sender_name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <input type="text" placeholder="Phone *" required value={pickupForm.sender_phone} onChange={(e) => setPickupForm({...pickupForm, sender_phone: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <input type="text" placeholder="Address" value={pickupForm.sender_address} onChange={(e) => setPickupForm({...pickupForm, sender_address: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+            </div>
+            <div className="border border-gray-200 rounded-lg p-4 bg-white">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">Receiver</h4>
+              <div className="space-y-2">
+                <input type="text" placeholder="Name *" required value={pickupForm.receiver_name} onChange={(e) => setPickupForm({...pickupForm, receiver_name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <input type="text" placeholder="Phone *" required value={pickupForm.receiver_phone} onChange={(e) => setPickupForm({...pickupForm, receiver_phone: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <input type="text" placeholder="Address" value={pickupForm.receiver_address} onChange={(e) => setPickupForm({...pickupForm, receiver_address: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Origin *</label>
+              <input type="text" required value={pickupForm.origin} onChange={(e) => setPickupForm({...pickupForm, origin: e.target.value})}
+                placeholder="e.g. Colombo" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Destination *</label>
+              <input type="text" required value={pickupForm.destination} onChange={(e) => setPickupForm({...pickupForm, destination: e.target.value})}
+                placeholder="e.g. Kandy" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" disabled={creating}
+              className="px-5 py-2 bg-brand-500 text-white rounded-lg text-sm font-semibold hover:bg-brand-600 disabled:opacity-50">
+              {creating ? 'Creating...' : 'Create Pickup'}
+            </button>
+            <button type="button" onClick={() => setShowForm(false)}
+              className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm">Cancel</button>
+          </div>
+        </form>
+      )}
 
       <div className="mb-4">
         <input type="text" placeholder="Search by client, sender, tracking number..." value={search}
