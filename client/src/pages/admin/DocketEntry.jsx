@@ -25,7 +25,6 @@ export default function DocketEntry({ onBack }) {
   const [editingId, setEditingId] = useState(null);
   const [pickups, setPickups] = useState([]);
   const [selectedPickupId, setSelectedPickupId] = useState(null);
-  const [remainingItems, setRemainingItems] = useState(null);
   const [assignForm, setAssignForm] = useState({ id: null, rider_id: '', sorting_area: '' });
 
   const getToken = () => sessionStorage.getItem('swc_token');
@@ -153,11 +152,40 @@ export default function DocketEntry({ onBack }) {
         });
         if (!res.ok) { const d = await res.json(); alert(d.error); return; }
         shipment = await res.json();
+      } else if (selectedPickupId) {
+        const pickup = pickups.find(p => String(p.id) === String(selectedPickupId));
+        const body = {
+          receiver_name: form.receiver_name,
+          receiver_phone: form.receiver_phone,
+          receiver_address: form.receiver_address,
+          destination: form.destination || form.receiver_address || 'N/A',
+          cod_amount: form.cod_amount || null,
+          weight: form.weight,
+          sw_tracking_number: form.sw_tracking_number || null,
+          special_instructions: form.special_instructions,
+          sorting_area: form.sorting_area,
+          status: 'at_sorting_center',
+          pickup_scheduled_at: form.docket_date || null,
+        };
+        const res = await fetch(`${API}/shipments/${selectedPickupId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) { const d = await res.json(); alert(d.error); return; }
+        shipment = await res.json();
+
+        if (form.sorting_area) {
+          await fetch(`${API}/sorting/${shipment.id}/assign`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+            body: JSON.stringify({ rider_id: null, sorting_area: form.sorting_area })
+          });
+        }
       } else {
         const body = {
           ...form,
           client_id: form.client_id || null,
-          pickup_id: selectedPickupId || null,
           origin: form.sender_address || 'N/A',
           destination: form.destination || form.receiver_address || 'N/A',
           delivery_type: '',
@@ -182,44 +210,45 @@ export default function DocketEntry({ onBack }) {
         }
       }
 
-      if (editingId) {
+      if (editingId || !selectedPickupId) {
         setShowForm(false);
         setEditingId(null);
         setPickups([]);
         setSelectedPickupId(null);
-        setRemainingItems(null);
         setForm(defaultForm);
       } else {
-        const newRemaining = remainingItems !== null ? remainingItems - 1 : null;
-        const res = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-        const newTracking = res.ok ? (await res.json()).tracking_number : '';
-        setForm({
-          ...defaultForm,
-          tracking_number: newTracking,
-          sw_tracking_number: '',
-          client_id: form.client_id,
-          sender_name: form.sender_name,
-          sender_phone: form.sender_phone,
-          sender_address: form.sender_address,
-          num_items: '1',
-          docket_date: new Date().toISOString().slice(0, 16),
-        });
         const pr = await fetch(`${API}/pickups?client_id=${form.client_id}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
         if (pr.ok) {
           const p = (await pr.json()).filter(p => p._type === 'shipment');
           setPickups(p);
-          if (newRemaining !== null && newRemaining > 0) {
-            setRemainingItems(newRemaining);
-            setSelectedPickupId(selectedPickupId);
-          } else {
-            setSelectedPickupId(null);
-            setRemainingItems(null);
+          if (p.length === 1) {
+            const nextPickup = p[0];
+            setSelectedPickupId(nextPickup.id);
+            setForm({
+              ...defaultForm,
+              tracking_number: nextPickup.tracking_number || '',
+              client_id: form.client_id,
+              sender_name: nextPickup.sender_name || form.sender_name,
+              sender_phone: nextPickup.sender_phone || form.sender_phone,
+              sender_address: nextPickup.sender_address || form.sender_address,
+              num_items: '1',
+              weight: nextPickup.weight || '',
+              special_instructions: nextPickup.special_instructions || '',
+              docket_date: new Date().toISOString().slice(0, 16),
+            });
+            return;
           }
-        } else {
-          setPickups([]);
-          setSelectedPickupId(null);
-          setRemainingItems(null);
         }
+        setPickups([]);
+        setSelectedPickupId(null);
+        setForm({
+          ...defaultForm,
+          client_id: form.client_id,
+          sender_name: form.sender_name,
+          sender_phone: form.sender_phone,
+          sender_address: form.sender_address,
+          docket_date: new Date().toISOString().slice(0, 16),
+        });
       }
       fetchItems(search);
     } catch (err) { alert(err.message); } finally { setSaving(false); }
@@ -325,18 +354,15 @@ export default function DocketEntry({ onBack }) {
           handlePickupSelect(String(p[0].id));
         } else if (p.length === 0) {
           setSelectedPickupId(null);
-          setRemainingItems(null);
         }
       } else {
         setPickups([]);
         setSelectedPickupId(null);
-        setRemainingItems(null);
       }
     } else {
       setForm({ ...form, client_id: '' });
       setPickups([]);
       setSelectedPickupId(null);
-      setRemainingItems(null);
     }
   };
 
@@ -344,12 +370,9 @@ export default function DocketEntry({ onBack }) {
     const pickup = pickups.find(p => String(p.id) === String(pickupId));
     if (pickup) {
       setSelectedPickupId(pickupId);
-      setRemainingItems(pickup.remaining_items);
-      const res = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-      const newTracking = res.ok ? (await res.json()).tracking_number : '';
       setForm({
         ...form,
-        tracking_number: newTracking,
+        tracking_number: pickup.tracking_number || '',
         sender_name: pickup.sender_name || form.sender_name,
         sender_phone: pickup.sender_phone || form.sender_phone,
         sender_address: pickup.sender_address || form.sender_address,
@@ -360,7 +383,6 @@ export default function DocketEntry({ onBack }) {
       });
     } else {
       setSelectedPickupId(null);
-      setRemainingItems(null);
     }
   };
 
@@ -386,9 +408,12 @@ export default function DocketEntry({ onBack }) {
               <label className="block text-xs font-medium text-gray-600 mb-1">Docket / Tracking #</label>
               <div className="flex gap-2">
                 <input type="text" required value={form.tracking_number} onChange={(e) => setForm({...form, tracking_number: e.target.value})}
-                  placeholder="e.g. PC001" className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-bold text-brand-600" />
-                <button type="button" onClick={generateTracking}
-                  className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 font-medium">Generate</button>
+                  disabled={!!selectedPickupId}
+                  placeholder="e.g. PC001" className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-bold text-brand-600 disabled:bg-gray-100" />
+                {!selectedPickupId && (
+                  <button type="button" onClick={generateTracking}
+                    className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 font-medium">Generate</button>
+                )}
               </div>
             </div>
             <div>
@@ -411,17 +436,15 @@ export default function DocketEntry({ onBack }) {
           {pickups.length > 1 && (
             <div className="mb-4">
               <label className="block text-xs font-medium text-gray-600 mb-1">From Pickup</label>
-              <div className="flex items-center gap-4">
-                <select onChange={(e) => handlePickupSelect(e.target.value)} className="flex-1 max-w-md px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
-                  <option value="">Select a pickup...</option>
-                  {pickups.map(p => <option key={p.id} value={p.id}>{p.tracking_number} — {p.sender_name} ({p.remaining_items} left)</option>)}
-                </select>
-              </div>
+              <select onChange={(e) => handlePickupSelect(e.target.value)} className="w-full max-w-md px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
+                <option value="">Select a pickup...</option>
+                {pickups.map(p => <option key={p.id} value={p.id}>{p.tracking_number} — {p.sender_name}</option>)}
+              </select>
             </div>
           )}
-          {selectedPickupId && remainingItems !== null && (
+          {selectedPickupId && (
             <div className="mb-4 text-sm text-gray-500">
-              Pickup <span className="font-semibold text-brand-600">{pickups.find(p => String(p.id) === String(selectedPickupId))?.tracking_number}</span> — <span className="font-semibold text-brand-600">{remainingItems}</span> parcel{remainingItems !== 1 ? 's' : ''} remaining
+              Pickup: <span className="font-semibold text-brand-600">{pickups.find(p => String(p.id) === String(selectedPickupId))?.tracking_number}</span>
             </div>
           )}
 
