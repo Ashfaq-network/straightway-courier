@@ -36,6 +36,7 @@ router.use(requireStaff);
 router.get('/profile', async (req, res) => {
   try {
     const result = await query('SELECT id, name, phone, email, username, role FROM delivery_staff WHERE id = $1', [req.user.id]);
+    if (!result.rows[0]) return res.status(404).json({ error: 'Staff not found' });
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });

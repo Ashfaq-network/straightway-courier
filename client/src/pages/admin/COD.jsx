@@ -83,9 +83,9 @@ export default function COD({ onBack }) {
             <p className="font-semibold text-gray-900">{r.name}</p>
             <p className="text-xs text-gray-500">{r.phone}</p>
             <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              <div><span className="text-gray-500">Total COD:</span><br/><span className="font-semibold">LKR {parseFloat(r.total_cod).toLocaleString()}</span></div>
-              <div><span className="text-gray-500">Collected:</span><br/><span className="font-semibold text-green-600">LKR {parseFloat(r.total_collected).toLocaleString()}</span></div>
-              <div className="col-span-2"><span className="text-gray-500">Outstanding:</span><br/><span className="font-semibold text-red-600">LKR {(parseFloat(r.total_cod) - parseFloat(r.total_collected)).toLocaleString()}</span></div>
+              <div><span className="text-gray-500">Total COD:</span><br/><span className="font-semibold">LKR {parseFloat(r.total_cod || 0).toLocaleString()}</span></div>
+              <div><span className="text-gray-500">Collected:</span><br/><span className="font-semibold text-green-600">LKR {parseFloat(r.total_collected || 0).toLocaleString()}</span></div>
+              <div className="col-span-2"><span className="text-gray-500">Outstanding:</span><br/><span className="font-semibold text-red-600">LKR {(parseFloat(r.total_cod || 0) - parseFloat(r.total_collected || 0)).toLocaleString()}</span></div>
             </div>
           </div>
         ))}

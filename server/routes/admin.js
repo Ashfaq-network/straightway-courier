@@ -17,6 +17,7 @@ router.post('/login', async (req, res) => {
     }
 
     const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
     const result = await query('SELECT * FROM admins WHERE username = $1', [username]);
     const admin = result.rows[0];
     if (!admin || !(await bcrypt.compare(password, admin.password_hash))) {
@@ -111,7 +112,7 @@ router.get('/shipments', async (req, res) => {
     if (status) { sql += ` AND s.status = $${idx}`; params.push(status); idx++; }
     if (client_id) { sql += ` AND s.client_id = $${idx}`; params.push(client_id); idx++; }
     if (startDate) { sql += ` AND s.created_at >= $${idx}`; params.push(startDate); idx++; }
-    if (endDate) { sql += ` AND s.created_at <= $${idx}`; params.push(endDate); idx++; }
+    if (endDate) { sql += ` AND s.created_at < ($${idx}::date + INTERVAL '1 day')`; params.push(endDate); idx++; }
     sql += ' ORDER BY s.created_at DESC';
     const result = await query(sql, params);
     res.json(result.rows);
@@ -375,9 +376,11 @@ router.post('/clients', async (req, res) => {
 router.put('/clients/:id', async (req, res) => {
   try {
     const { client_type, company_name, contact_person, phone, email, address, billing_address, is_active } = req.body;
+    const existing = await query('SELECT * FROM clients WHERE id = $1', [req.params.id]);
+    if (!existing.rows[0]) return res.status(404).json({ error: 'Client not found' });
+    const e = existing.rows[0];
     const result = await query(`UPDATE clients SET client_type=$1, company_name=$2, contact_person=$3, phone=$4, email=$5, address=$6, billing_address=$7, is_active=$8, updated_at=CURRENT_TIMESTAMP WHERE id=$9 RETURNING *`,
-      [client_type || 'individual', company_name || null, contact_person, phone, email || null, address || null, billing_address || null, is_active !== undefined ? is_active : true, req.params.id]);
-    if (!result.rows[0]) return res.status(404).json({ error: 'Client not found' });
+      [client_type || e.client_type, company_name !== undefined ? (company_name || null) : e.company_name, contact_person || e.contact_person, phone || e.phone, email !== undefined ? (email || null) : e.email, address !== undefined ? (address || null) : e.address, billing_address !== undefined ? (billing_address || null) : e.billing_address, is_active !== undefined ? is_active : e.is_active, req.params.id]);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -386,6 +389,11 @@ router.put('/clients/:id', async (req, res) => {
 
 router.delete('/clients/:id', async (req, res) => {
   try {
+    const shipmentCount = await query('SELECT COUNT(*) FROM shipments WHERE client_id = $1', [req.params.id]);
+    if (parseInt(shipmentCount.rows[0].count) > 0) {
+      await query('UPDATE clients SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *', [req.params.id]);
+      return res.json({ success: true, message: 'Client deactivated (has existing shipments)' });
+    }
     const result = await query('DELETE FROM clients WHERE id = $1 RETURNING *', [req.params.id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Client not found' });
     res.json({ success: true });
@@ -398,6 +406,8 @@ router.delete('/clients/:id', async (req, res) => {
 router.post('/clients/:id/create-login', async (req, res) => {
   try {
     const { username, password } = req.body;
+    if (!username || !username.trim()) return res.status(400).json({ error: 'Username is required' });
+    if (!password || password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
     const client = await query('SELECT * FROM clients WHERE id = $1', [req.params.id]);
     if (!client.rows[0]) return res.status(404).json({ error: 'Client not found' });
     const existing = await query('SELECT id FROM client_users WHERE username = $1', [username]);
@@ -578,7 +588,7 @@ router.get('/delivery-sheet', async (req, res) => {
       WHERE s.status IN ('sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','rescheduled')`;
     const params = [];
     if (rider_id) { sql += ` AND s.delivery_rider_id = $1`; params.push(rider_id); }
-    sql += ' ORDER BY s.rider_name, s.created_at DESC';
+    sql += ' ORDER BY rider_name, s.created_at DESC';
     const result = await query(sql, params.length ? params : undefined);
     res.json(result.rows);
   } catch (err) {
@@ -626,14 +636,25 @@ router.post('/cod/settle', async (req, res) => {
 router.get('/cod/summary', async (req, res) => {
   try {
     const riders = await query(`SELECT d.id, d.name, d.phone,
-      COALESCE(SUM(s.cod_amount), 0) AS total_cod,
-      COALESCE(SUM(cs.collected_amount), 0) AS total_collected,
-      COUNT(s.id) FILTER (WHERE s.payment_status = 'cod') AS cod_shipments
+      COALESCE(sub.total_cod, 0) AS total_cod,
+      COALESCE(cs_sub.total_collected, 0) AS total_collected,
+      COALESCE(sub.cod_shipments, 0) AS cod_shipments
       FROM delivery_staff d
-      LEFT JOIN shipments s ON (s.delivery_rider_id = d.id OR s.pickup_driver_id = d.id) AND s.payment_status = 'cod' AND s.status NOT IN ('pickup_requested','picked_up')
-      LEFT JOIN cod_settlements cs ON cs.rider_id = d.id
+      LEFT JOIN (
+        SELECT COALESCE(SUM(s.cod_amount), 0) AS total_cod,
+          COUNT(s.id) AS cod_shipments,
+          s.delivery_rider_id AS rider_id
+        FROM shipments s
+        WHERE s.payment_status = 'cod' AND s.status NOT IN ('pickup_requested','picked_up')
+        GROUP BY s.delivery_rider_id
+      ) sub ON sub.rider_id = d.id
+      LEFT JOIN (
+        SELECT cs.rider_id, COALESCE(SUM(cs.collected_amount), 0) AS total_collected
+        FROM cod_settlements cs
+        GROUP BY cs.rider_id
+      ) cs_sub ON cs_sub.rider_id = d.id
       WHERE d.role IN ('pickup_driver','delivery_rider')
-      GROUP BY d.id, d.name, d.phone ORDER BY d.name`);
+      ORDER BY d.name`);
     res.json(riders.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -698,7 +719,7 @@ router.get('/reports/rider-performance', async (req, res) => {
     const { startDate, endDate } = req.query;
     let where = '';
     const params = [];
-    if (startDate && endDate) { where = ' WHERE s.delivered_at >= $1 AND s.delivered_at <= $2'; params.push(startDate, endDate); }
+    if (startDate && endDate) { where = ' WHERE s.delivered_at >= $1 AND s.delivered_at < ($2::date + INTERVAL \'1 day\')'; params.push(startDate, endDate); }
     const result = await query(`
       SELECT d.id, d.name, d.phone, d.role,
         COUNT(s.id) FILTER (WHERE s.status = 'delivered') AS deliveries_completed,
@@ -723,7 +744,7 @@ router.get('/reports/export', async (req, res) => {
     const params = [];
     let idx = 1;
     if (startDate) { sql += ` AND s.created_at >= $${idx}`; params.push(startDate); idx++; }
-    if (endDate) { sql += ` AND s.created_at <= $${idx}`; params.push(endDate); idx++; }
+    if (endDate) { sql += ` AND s.created_at < ($${idx}::date + INTERVAL '1 day')`; params.push(endDate); idx++; }
     sql += ' ORDER BY s.created_at DESC';
     const result = await query(sql, params.length ? params : undefined);
     res.json(result.rows);
@@ -764,10 +785,12 @@ router.post('/staff', async (req, res) => {
 router.put('/staff/:id', async (req, res) => {
   try {
     const { name, phone, email, username, role, is_active } = req.body;
+    const existing = await query('SELECT * FROM delivery_staff WHERE id = $1', [req.params.id]);
+    if (!existing.rows[0]) return res.status(404).json({ error: 'Staff not found' });
+    const e = existing.rows[0];
     const result = await query(`UPDATE delivery_staff SET name=$1, phone=$2, email=$3, username=$4, role=$5, is_active=$6 WHERE id=$7
       RETURNING id, name, phone, email, username, role, is_active, created_at`,
-      [name, phone, email || null, username, role || 'delivery_rider', is_active !== undefined ? is_active : true, req.params.id]);
-    if (!result.rows[0]) return res.status(404).json({ error: 'Staff not found' });
+      [name || e.name, phone || e.phone, email !== undefined ? (email || null) : e.email, username || e.username, role || e.role, is_active !== undefined ? is_active : e.is_active, req.params.id]);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -173,7 +173,7 @@ export default function DocketEntry({ onBack }) {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
           body: JSON.stringify(body)
         });
-        if (!res.ok) { const d = await res.json(); alert(d.error); return; }
+        if (!res.ok) { const d = await res.json(); alert(d.error); setSaving(false); submittingRef.current = false; return; }
         shipment = await res.json();
       } else if (selectedPickupId) {
         const body = {
@@ -202,7 +202,7 @@ export default function DocketEntry({ onBack }) {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
           body: JSON.stringify(body)
         });
-        if (!res.ok) { const d = await res.json(); alert(d.error); return; }
+        if (!res.ok) { const d = await res.json(); alert(d.error); setSaving(false); submittingRef.current = false; return; }
         shipment = await res.json();
 
         if (form.sorting_area) {
@@ -228,7 +228,7 @@ export default function DocketEntry({ onBack }) {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
           body: JSON.stringify(body)
         });
-        if (!res.ok) { const d = await res.json(); alert(d.error); return; }
+        if (!res.ok) { const d = await res.json(); alert(d.error); setSaving(false); submittingRef.current = false; return; }
         shipment = await res.json();
 
         if (form.sorting_area) {

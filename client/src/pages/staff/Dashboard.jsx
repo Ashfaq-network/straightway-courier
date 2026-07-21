@@ -4,6 +4,116 @@ import Waybill from '../../components/Waybill';
 
 const API = '/api/staff';
 
+function PickupForm({ s, onStatusUpdate, doingAction, onCancel }) {
+  const [location, setLocation] = useState(s.pickup_address || s.sender_address || '');
+  const [desc, setDesc] = useState('Parcel collected from sender');
+  return (
+    <div className="flex flex-col gap-2 w-full sm:w-80">
+      <p className="text-xs font-semibold text-amber-600 mb-1">Complete Pickup</p>
+      <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Pickup location"
+        className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
+      <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description"
+        className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
+      <div className="flex gap-2">
+        <button onClick={() => onStatusUpdate(s.id, 'picked_up', { location, description: desc })}
+          disabled={doingAction === s.id}
+          className="flex-1 px-4 py-2.5 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 disabled:opacity-50 touch-manipulation">
+          {doingAction === s.id ? 'Updating...' : 'Confirm Pickup'}
+        </button>
+        <button onClick={onCancel} className="px-4 py-2.5 bg-gray-200 text-gray-700 text-sm rounded-lg touch-manipulation">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function DeliveryForm({ s, onStatusUpdate, onDeliveryAttempt, doingAction, onCancel }) {
+  const [step, setStep] = useState('options');
+  const [location, setLocation] = useState(s.delivery_address || s.receiver_address || '');
+  const [signature, setSignature] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [reason, setReason] = useState('');
+  const [note, setNote] = useState('');
+
+  if (step === 'deliver') {
+    return (
+      <div className="flex flex-col gap-3 w-full sm:w-80">
+        <p className="text-xs font-semibold text-green-600 mb-1">Complete Delivery</p>
+        <input value={signature} onChange={e => setSignature(e.target.value)} placeholder="Receiver name (signature)"
+          className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
+        <input value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} placeholder="Delivery photo URL (optional)"
+          className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
+        <input value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Delivery remarks (optional)"
+          className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
+        <div className="flex gap-2">
+          <button onClick={() => onStatusUpdate(s.id, 'delivered', { location, description: 'Delivered successfully', receiver_signature: signature, delivery_photo: photoUrl, delivery_remarks: remarks })}
+            disabled={doingAction === s.id || !signature}
+            className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-semibold rounded-lg hover:bg-green-600 disabled:opacity-50 touch-manipulation">
+            {doingAction === s.id ? 'Saving...' : 'Mark Delivered'}
+          </button>
+          <button onClick={() => setStep('options')} className="px-4 py-2.5 bg-gray-200 text-gray-700 text-sm rounded-lg touch-manipulation">Back</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'fail') {
+    return (
+      <div className="flex flex-col gap-3 w-full sm:w-80">
+        <p className="text-xs font-semibold text-red-600 mb-1">Log Failed Delivery</p>
+        <select value={reason} onChange={e => setReason(e.target.value)}
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
+          <option value="">Select reason...</option>
+          <option value="Customer unavailable">Customer unavailable</option>
+          <option value="Wrong address">Wrong address</option>
+          <option value="Phone unreachable">Phone unreachable</option>
+          <option value="Business closed">Business closed</option>
+          <option value="Other">Other</option>
+        </select>
+        <input value={note} onChange={e => setNote(e.target.value)} placeholder="Additional notes"
+          className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
+        <div className="flex gap-2">
+          <button onClick={() => onDeliveryAttempt(s.id, reason, note)}
+            disabled={doingAction === s.id || !reason}
+            className="flex-1 px-4 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 disabled:opacity-50 touch-manipulation">
+            {doingAction === s.id ? 'Logging...' : 'Log Failed Attempt'}
+          </button>
+          <button onClick={() => setStep('options')} className="px-4 py-2.5 bg-gray-200 text-gray-700 text-sm rounded-lg touch-manipulation">Back</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3 w-full sm:w-80">
+      <p className="text-xs font-semibold text-gray-600 mb-1">Update Delivery Status</p>
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={() => onStatusUpdate(s.id, 'out_for_delivery', { location, description: 'Out for delivery' })}
+          disabled={doingAction === s.id}
+          className="px-4 py-3 bg-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50 touch-manipulation">
+          Out for Delivery
+        </button>
+        <button onClick={() => onStatusUpdate(s.id, 'customer_contacted', { location, description: 'Customer contacted' })}
+          disabled={doingAction === s.id}
+          className="px-4 py-3 bg-teal-500 text-white text-sm font-semibold rounded-lg hover:bg-teal-600 disabled:opacity-50 touch-manipulation">
+          Contacted
+        </button>
+        <button onClick={() => setStep('deliver')}
+          className="px-4 py-3 bg-green-500 text-white text-sm font-semibold rounded-lg hover:bg-green-600 touch-manipulation">
+          Deliver
+        </button>
+        <button onClick={() => setStep('fail')}
+          className="px-4 py-3 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 touch-manipulation">
+          Failed
+        </button>
+      </div>
+      <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Current location"
+        className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
+      <button onClick={onCancel} className="text-sm text-gray-500 hover:text-gray-700 py-1 touch-manipulation">Cancel</button>
+    </div>
+  );
+}
+
 export default function StaffDashboard() {
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +146,7 @@ export default function StaffDashboard() {
         navigate('/staff');
         return;
       }
-      setShipments(await res.json());
+      if (res.ok) setShipments(await res.json());
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
@@ -86,117 +196,6 @@ export default function StaffDashboard() {
 
   const isPickupDriver = profile?.role === 'pickup_driver';
   const isDeliveryRider = profile?.role === 'delivery_rider';
-
-    const PickupForm = ({ s }) => {
-    const [location, setLocation] = useState(s.pickup_address || s.sender_address || '');
-    const [desc, setDesc] = useState('Parcel collected from sender');
-    return (
-      <div className="flex flex-col gap-2 w-full sm:w-80">
-        <p className="text-xs font-semibold text-amber-600 mb-1">Complete Pickup</p>
-        <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Pickup location"
-          className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
-        <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description"
-          className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
-        <div className="flex gap-2">
-          <button onClick={() => handleStatusUpdate(s.id, 'picked_up', { location, description: desc })}
-            disabled={doingAction === s.id}
-            className="flex-1 px-4 py-2.5 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 disabled:opacity-50 touch-manipulation">
-            {doingAction === s.id ? 'Updating...' : 'Confirm Pickup'}
-          </button>
-          <button onClick={() => setSelectedShipment(null)} className="px-4 py-2.5 bg-gray-200 text-gray-700 text-sm rounded-lg touch-manipulation">Cancel</button>
-        </div>
-      </div>
-    );
-  };
-
-  const DeliveryForm = ({ s }) => {
-    const [step, setStep] = useState('options');
-    const [location, setLocation] = useState(s.delivery_address || s.receiver_address || '');
-    const [desc, setDesc] = useState('');
-    const [signature, setSignature] = useState('');
-    const [photoUrl, setPhotoUrl] = useState('');
-    const [remarks, setRemarks] = useState('');
-    const [reason, setReason] = useState('');
-    const [note, setNote] = useState('');
-
-    if (step === 'deliver') {
-      return (
-        <div className="flex flex-col gap-3 w-full sm:w-80">
-          <p className="text-xs font-semibold text-green-600 mb-1">Complete Delivery</p>
-          <input value={signature} onChange={e => setSignature(e.target.value)} placeholder="Receiver name (signature)"
-            className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
-          <input value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} placeholder="Delivery photo URL (optional)"
-            className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
-          <input value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Delivery remarks (optional)"
-            className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
-          <div className="flex gap-2">
-            <button onClick={() => handleStatusUpdate(s.id, 'delivered', { location, description: desc || 'Delivered successfully', receiver_signature: signature, delivery_photo: photoUrl, delivery_remarks: remarks })}
-              disabled={doingAction === s.id || !signature}
-              className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-semibold rounded-lg hover:bg-green-600 disabled:opacity-50 touch-manipulation">
-              {doingAction === s.id ? 'Saving...' : 'Mark Delivered'}
-            </button>
-            <button onClick={() => setStep('options')} className="px-4 py-2.5 bg-gray-200 text-gray-700 text-sm rounded-lg touch-manipulation">Back</button>
-          </div>
-        </div>
-      );
-    }
-
-    if (step === 'fail') {
-      return (
-        <div className="flex flex-col gap-3 w-full sm:w-80">
-          <p className="text-xs font-semibold text-red-600 mb-1">Log Failed Delivery</p>
-          <select value={reason} onChange={e => setReason(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
-            <option value="">Select reason...</option>
-            <option value="Customer unavailable">Customer unavailable</option>
-            <option value="Wrong address">Wrong address</option>
-            <option value="Phone unreachable">Phone unreachable</option>
-            <option value="Business closed">Business closed</option>
-            <option value="Other">Other</option>
-          </select>
-          <input value={note} onChange={e => setNote(e.target.value)} placeholder="Additional notes"
-            className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
-          <div className="flex gap-2">
-            <button onClick={() => handleDeliveryAttempt(s.id, reason, note)}
-              disabled={doingAction === s.id || !reason}
-              className="flex-1 px-4 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 disabled:opacity-50 touch-manipulation">
-              {doingAction === s.id ? 'Logging...' : 'Log Failed Attempt'}
-            </button>
-            <button onClick={() => setStep('options')} className="px-4 py-2.5 bg-gray-200 text-gray-700 text-sm rounded-lg touch-manipulation">Back</button>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex flex-col gap-3 w-full sm:w-80">
-        <p className="text-xs font-semibold text-gray-600 mb-1">Update Delivery Status</p>
-        <div className="grid grid-cols-2 gap-2">
-          <button onClick={() => handleStatusUpdate(s.id, 'out_for_delivery', { location, description: 'Out for delivery' })}
-            disabled={doingAction === s.id}
-            className="px-4 py-3 bg-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50 touch-manipulation">
-            Out for Delivery
-          </button>
-          <button onClick={() => handleStatusUpdate(s.id, 'customer_contacted', { location, description: 'Customer contacted' })}
-            disabled={doingAction === s.id}
-            className="px-4 py-3 bg-teal-500 text-white text-sm font-semibold rounded-lg hover:bg-teal-600 disabled:opacity-50 touch-manipulation">
-            Contacted
-          </button>
-          <button onClick={() => setStep('deliver')}
-            className="px-4 py-3 bg-green-500 text-white text-sm font-semibold rounded-lg hover:bg-green-600 touch-manipulation">
-            Deliver
-          </button>
-          <button onClick={() => setStep('fail')}
-            className="px-4 py-3 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 touch-manipulation">
-            Failed
-          </button>
-        </div>
-        <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Current location"
-          className="w-full px-3 py-2.5 border text-sm border-gray-300 rounded-lg" />
-        <button onClick={() => setSelectedShipment(null)} className="text-sm text-gray-500 hover:text-gray-700 py-1 touch-manipulation">Cancel</button>
-      </div>
-    );
-  };
 
   const roleLabel = isPickupDriver ? 'Pickup Driver' : isDeliveryRider ? 'Delivery Rider' : 'Staff';
 
@@ -333,7 +332,7 @@ export default function StaffDashboard() {
 
         <div className="flex-shrink-0 w-full sm:w-auto">
           {selectedShipment === s.id ? (
-            isPickupDriver ? <PickupForm s={s} /> : isDeliveryRider ? <DeliveryForm s={s} /> : null
+            isPickupDriver ? <PickupForm s={s} onStatusUpdate={handleStatusUpdate} doingAction={doingAction} onCancel={() => setSelectedShipment(null)} /> : isDeliveryRider ? <DeliveryForm s={s} onStatusUpdate={handleStatusUpdate} onDeliveryAttempt={handleDeliveryAttempt} doingAction={doingAction} onCancel={() => setSelectedShipment(null)} /> : null
           ) : (
             <div className="flex flex-col gap-2">
               <button onClick={() => setSelectedShipment(s.id)}
