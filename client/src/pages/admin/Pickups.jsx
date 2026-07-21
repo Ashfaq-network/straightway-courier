@@ -152,7 +152,7 @@ export default function Pickups({ onBack }) {
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Tracking Number</label>
-              <input type="text" readOnly value={pickupForm.tracking_number} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-bold text-brand-600 bg-white" />
+              <input type="text" value={pickupForm.tracking_number} onChange={(e) => setPickupForm({...pickupForm, tracking_number: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-bold text-brand-600 bg-white" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Client</label>
