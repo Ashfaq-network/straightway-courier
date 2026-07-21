@@ -413,7 +413,7 @@ router.post('/clients/:id/create-login', async (req, res) => {
 // ─── Pickup Management ──────────────────────────────────────────────
 router.get('/pickups', async (req, res) => {
   try {
-    const { status, search } = req.query;
+    const { status, search, client_id } = req.query;
     let sql = `SELECT s.*, d.name AS driver_name, d.phone AS driver_phone,
       COALESCE(c.company_name, c.contact_person) AS client_name,
       'shipment' AS _type
@@ -424,6 +424,7 @@ router.get('/pickups', async (req, res) => {
     const params = [];
     let idx = 1;
     if (status) { sql += ` AND s.status = $${idx}`; params.push(status); idx++; }
+    if (client_id) { sql += ` AND s.client_id = $${idx}`; params.push(client_id); idx++; }
     if (search) {
       sql += ` AND (c.company_name ILIKE $${idx} OR c.contact_person ILIKE $${idx} OR s.sender_name ILIKE $${idx} OR s.receiver_name ILIKE $${idx} OR s.tracking_number ILIKE $${idx} OR s.sender_phone ILIKE $${idx})`;
       params.push(`%${search}%`);

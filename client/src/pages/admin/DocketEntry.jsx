@@ -9,7 +9,7 @@ const defaultForm = {
   destination: '',
   num_items: '', weight: '', cod_amount: '',
   docket_date: new Date().toISOString().slice(0, 16),
-  sorting_area: '', delivery_rider_id: '',
+  sorting_area: '',
   special_instructions: '',
 };
 
@@ -23,6 +23,7 @@ export default function DocketEntry({ onBack }) {
   const [form, setForm] = useState(defaultForm);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [pickups, setPickups] = useState([]);
   const [assignForm, setAssignForm] = useState({ id: null, rider_id: '', sorting_area: '' });
 
   const getToken = () => sessionStorage.getItem('swc_token');
@@ -63,6 +64,18 @@ export default function DocketEntry({ onBack }) {
     } catch (err) { console.error(err); }
   };
 
+  const fetchPickups = async (clientId) => {
+    try {
+      const res = await fetch(`${API}/pickups?client_id=${clientId}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (res.ok) {
+        const data = await res.json();
+        setPickups(data.filter(p => p._type === 'shipment'));
+      } else {
+        setPickups([]);
+      }
+    } catch (err) { console.error(err); setPickups([]); }
+  };
+
   const generateTracking = async () => {
     try {
       const res = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
@@ -96,7 +109,6 @@ export default function DocketEntry({ onBack }) {
       cod_amount: s.cod_amount || '',
       docket_date: s.pickup_scheduled_at ? s.pickup_scheduled_at.slice(0, 16) : new Date().toISOString().slice(0, 16),
       sorting_area: s.sorting_area || '',
-      delivery_rider_id: s.delivery_rider_id || '',
       special_instructions: s.special_instructions || '',
     });
     setShowForm(true);
@@ -126,7 +138,6 @@ export default function DocketEntry({ onBack }) {
           pickup_scheduled_at: form.docket_date || null,
           special_instructions: form.special_instructions,
           sorting_area: form.sorting_area,
-          delivery_rider_id: form.delivery_rider_id,
         };
         const res = await fetch(`${API}/shipments/${editingId}`, {
           method: 'PUT',
@@ -154,14 +165,11 @@ export default function DocketEntry({ onBack }) {
         if (!res.ok) { const d = await res.json(); alert(d.error); return; }
         shipment = await res.json();
 
-        if (form.delivery_rider_id || form.sorting_area) {
+        if (form.sorting_area) {
           await fetch(`${API}/sorting/${shipment.id}/assign`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-            body: JSON.stringify({
-              rider_id: form.delivery_rider_id ? parseInt(form.delivery_rider_id) : null,
-              sorting_area: form.sorting_area || null,
-            })
+            body: JSON.stringify({ rider_id: null, sorting_area: form.sorting_area })
           });
         }
       }
@@ -209,8 +217,27 @@ export default function DocketEntry({ onBack }) {
         sender_phone: client.phone || '',
         sender_address: client.address || '',
       });
+      fetchPickups(clientId);
     } else {
       setForm({ ...form, client_id: '' });
+      setPickups([]);
+    }
+  };
+
+  const handlePickupSelect = (pickupId) => {
+    const pickup = pickups.find(p => String(p.id) === String(pickupId));
+    if (pickup) {
+      setForm({
+        ...form,
+        tracking_number: pickup.tracking_number || form.tracking_number,
+        sender_name: pickup.sender_name || form.sender_name,
+        sender_phone: pickup.sender_phone || form.sender_phone,
+        sender_address: pickup.sender_address || form.sender_address,
+        num_items: pickup.num_items || form.num_items,
+        weight: pickup.weight || form.weight,
+        destination: pickup.destination || form.destination,
+        special_instructions: pickup.special_instructions || form.special_instructions,
+      });
     }
   };
 
@@ -256,6 +283,16 @@ export default function DocketEntry({ onBack }) {
             </div>
           </div>
 
+          {pickups.length > 0 && (
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-gray-600 mb-1">From Pickup</label>
+              <select onChange={(e) => handlePickupSelect(e.target.value)} className="w-full max-w-md px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
+                <option value="">Select a pickup to auto-fill...</option>
+                {pickups.map(p => <option key={p.id} value={p.id}>{p.tracking_number} — {p.sender_name}</option>)}
+              </select>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Weight (kg)</label>
@@ -266,11 +303,6 @@ export default function DocketEntry({ onBack }) {
               <label className="block text-xs font-medium text-gray-600 mb-1">Destination</label>
               <input type="text" value={form.destination} onChange={(e) => setForm({...form, destination: e.target.value})}
                 placeholder="e.g. Kandy" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">COD Amount (Rs.)</label>
-              <input type="text" inputMode="numeric" placeholder="e.g. 5000" value={form.cod_amount} onChange={(e) => setForm({...form, cod_amount: e.target.value})}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Date & Time</label>
@@ -306,17 +338,14 @@ export default function DocketEntry({ onBack }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Sorting Area</label>
-              <input type="text" placeholder="e.g. Colombo 3" value={form.sorting_area} onChange={(e) => setForm({...form, sorting_area: e.target.value})}
+              <label className="block text-xs font-medium text-gray-600 mb-1">COD Amount (Rs.)</label>
+              <input type="text" inputMode="numeric" placeholder="e.g. 5000" value={form.cod_amount} onChange={(e) => setForm({...form, cod_amount: e.target.value})}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Assign Delivery Rider</label>
-              <select value={form.delivery_rider_id} onChange={(e) => setForm({...form, delivery_rider_id: e.target.value})}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
-                <option value="">Not assigned</option>
-                {riders.map(r => <option key={r.id} value={r.id}>{r.name} ({r.phone})</option>)}
-              </select>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Sorting Area</label>
+              <input type="text" placeholder="e.g. Colombo 3" value={form.sorting_area} onChange={(e) => setForm({...form, sorting_area: e.target.value})}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             </div>
           </div>
 
