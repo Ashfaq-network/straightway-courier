@@ -173,25 +173,29 @@ export default function DocketEntry({ onBack }) {
         if (!res.ok) { const d = await res.json(); alert(d.error); return; }
         shipment = await res.json();
       } else if (selectedPickupId) {
-        const currentPickup = pickups.find(p => String(p.id) === String(selectedPickupId));
-        const decItems = Math.max(1, (parseInt(currentPickup?.num_items) || 1) - 1);
         const body = {
           tracking_number: form.tracking_number,
           sw_tracking_number: form.sw_tracking_number || null,
+          client_id: form.client_id || null,
+          sender_name: form.sender_name,
+          sender_phone: form.sender_phone,
+          sender_address: form.sender_address,
           receiver_name: form.receiver_name,
           receiver_phone: form.receiver_phone,
           receiver_address: form.receiver_address,
           destination: form.destination || form.receiver_address || 'N/A',
+          origin: form.sender_address || 'N/A',
           cod_amount: form.cod_amount || null,
           weight: form.weight,
-          num_items: decItems,
+          num_items: 1,
           special_instructions: form.special_instructions,
           sorting_area: form.sorting_area,
           status: 'at_sorting_center',
           pickup_scheduled_at: form.docket_date || null,
+          pickup_id: Number(selectedPickupId),
         };
-        const res = await fetch(`${API}/shipments/${selectedPickupId}`, {
-          method: 'PUT',
+        const res = await fetch(`${API}/shipments`, {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
           body: JSON.stringify(body)
         });
