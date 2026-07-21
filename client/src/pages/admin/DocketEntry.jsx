@@ -77,21 +77,17 @@ export default function DocketEntry({ onBack }) {
     } catch (err) { console.error(err); setPickups([]); }
   };
 
-  const generateTracking = async () => {
-    try {
-      const res = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-      if (res.ok) {
-        const data = await res.json();
-        setForm({ ...form, tracking_number: data.tracking_number });
-      }
-    } catch (err) { console.error(err); }
-  };
 
-  const openNew = () => {
+  const openNew = async () => {
     setEditingId(null);
     setPickups([]);
     setSelectedPickupId(null);
-    setForm({ ...defaultForm, docket_date: new Date().toISOString().slice(0, 16) });
+    let tn = '';
+    try {
+      const r = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (r.ok) tn = (await r.json()).tracking_number;
+    } catch {}
+    setForm({ ...defaultForm, tracking_number: tn, docket_date: new Date().toISOString().slice(0, 16) });
     setShowForm(true);
   };
 
@@ -225,15 +221,15 @@ export default function DocketEntry({ onBack }) {
       } else {
         const currentPickup = pickups.find(p => String(p.id) === String(selectedPickupId));
         const remaining = currentPickup ? (currentPickup.remaining_items ?? currentPickup.num_items) - 1 : 0;
-        if (remaining > 0) {
+          if (remaining > 0) {
           const updated = { ...currentPickup, remaining_items: remaining };
           setPickups(pickups.map(p => String(p.id) === String(selectedPickupId) ? updated : p));
-          fillFromPickup(updated, form.client_id);
+          await fillFromPickup(updated, form.client_id);
         } else {
           const remainingPickups = pickups.filter(p => String(p.id) !== String(selectedPickupId));
           setPickups(remainingPickups);
           if (remainingPickups.length > 0) {
-            fillFromPickup(remainingPickups[0], form.client_id);
+            await fillFromPickup(remainingPickups[0], form.client_id);
           } else {
             setShowForm(false);
             setSelectedPickupId(null);
@@ -312,7 +308,7 @@ export default function DocketEntry({ onBack }) {
           <h3>Receiver</h3>
           <p><strong>${s.receiver_name || ''}</strong></p>
           <p>${s.receiver_phone || ''}</p>
-          <p>${s.receiver_address || ''}</p>
+          <p>Postal Code: ${s.receiver_address || ''}</p>
         </div>
       </div>
       <table class="details">
@@ -349,9 +345,17 @@ export default function DocketEntry({ onBack }) {
         const p = data.filter(p => p._type === 'shipment');
         setPickups(p);
         if (p.length === 1) {
-          fillFromPickup(p[0], clientId);
+          await fillFromPickup(p[0], clientId);
         } else if (p.length === 0) {
           setSelectedPickupId(null);
+          let tn = form.tracking_number;
+          if (!tn) {
+            try {
+              const r = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+              if (r.ok) tn = (await r.json()).tracking_number;
+            } catch {}
+          }
+          setForm(f => ({ ...f, tracking_number: tn }));
         }
       } else {
         setPickups([]);
@@ -428,19 +432,7 @@ export default function DocketEntry({ onBack }) {
         <form onSubmit={handleSubmit} className="bg-gray-50 rounded-xl p-6 border border-gray-100 mb-6">
           <h3 className="font-semibold text-gray-900 mb-4">{editingId ? 'Edit Docket Entry' : 'New Docket Entry'}</h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Docket / Tracking #</label>
-              <div className="flex gap-2">
-                <input type="text" required value={form.tracking_number} onChange={(e) => setForm({...form, tracking_number: e.target.value})}
-                  disabled={!!selectedPickupId}
-                  placeholder="e.g. PC001" className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-bold text-brand-600 disabled:bg-gray-100" />
-                {!selectedPickupId && (
-                  <button type="button" onClick={generateTracking}
-                    className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 font-medium">Generate</button>
-                )}
-              </div>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Client</label>
               <select value={form.client_id} onChange={(e) => handleClientSelect(e.target.value)}
@@ -495,8 +487,8 @@ export default function DocketEntry({ onBack }) {
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">SW Tracking #</label>
-              <input type="text" value={form.sw_tracking_number} onChange={(e) => setForm({...form, sw_tracking_number: e.target.value})}
+              <label className="block text-xs font-medium text-gray-600 mb-1">SW Tracking # *</label>
+              <input type="text" required value={form.sw_tracking_number} onChange={(e) => setForm({...form, sw_tracking_number: e.target.value})}
                 placeholder="e.g. SW0001" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             </div>
           </div>
@@ -520,7 +512,7 @@ export default function DocketEntry({ onBack }) {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                 <input type="text" placeholder="Phone *" required value={form.receiver_phone} onChange={(e) => setForm({...form, receiver_phone: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                <input type="text" placeholder="Address" value={form.receiver_address} onChange={(e) => setForm({...form, receiver_address: e.target.value})}
+                <input type="text" placeholder="Postal Code *" required value={form.receiver_address} onChange={(e) => setForm({...form, receiver_address: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
               </div>
             </div>
@@ -551,7 +543,7 @@ export default function DocketEntry({ onBack }) {
               className="px-5 py-2 bg-brand-500 text-white rounded-lg text-sm font-semibold hover:bg-brand-600 disabled:opacity-50">
               {saving ? 'Saving...' : editingId ? 'Update Docket' : 'Create Docket'}
             </button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setForm(defaultForm); setPickups([]); setSelectedPickupId(null); setRemainingItems(null); }}
+            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setForm(defaultForm); setPickups([]); setSelectedPickupId(null); }}
               className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm">Cancel</button>
           </div>
         </form>
@@ -591,9 +583,10 @@ export default function DocketEntry({ onBack }) {
             <thead className="bg-gray-50 text-gray-600">
               <tr>
                 <th className="text-left px-4 py-3 font-medium">Docket #</th>
+                <th className="text-left px-4 py-3 font-medium">SW Tracking</th>
                 <th className="text-left px-4 py-3 font-medium">Sender</th>
                 <th className="text-left px-4 py-3 font-medium">Receiver</th>
-                <th className="text-left px-4 py-3 font-medium">Destination</th>
+                <th className="text-left px-4 py-3 font-medium">Postal Code</th>
                 <th className="text-left px-4 py-3 font-medium">Items</th>
                 <th className="text-left px-4 py-3 font-medium">Area</th>
                 <th className="text-left px-4 py-3 font-medium">Rider</th>
@@ -605,9 +598,10 @@ export default function DocketEntry({ onBack }) {
               {items.map(s => (
                 <tr key={s.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">{s.tracking_number}</td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">{s.sw_tracking_number || '-'}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{s.sender_name}<br/><span className="text-gray-400">{s.sender_phone}</span></td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{s.receiver_name}<br/><span className="text-gray-400">{s.receiver_phone}</span></td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{s.destination}</td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">{s.receiver_address || '-'}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{s.num_items || '-'}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{s.sorting_area || '-'}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{s.rider_name || <span className="text-gray-400">—</span>}</td>
