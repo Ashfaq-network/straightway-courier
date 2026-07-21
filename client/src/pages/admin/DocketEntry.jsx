@@ -91,7 +91,6 @@ export default function DocketEntry({ onBack }) {
     setEditingId(null);
     setPickups([]);
     setSelectedPickupId(null);
-    setRemainingItems(null);
     setForm({ ...defaultForm, docket_date: new Date().toISOString().slice(0, 16) });
     setShowForm(true);
   };
