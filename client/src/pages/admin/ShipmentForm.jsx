@@ -142,8 +142,7 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
         {/* Financial */}
         <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
           <h3 className="font-semibold text-gray-900 mb-4 text-sm uppercase tracking-wider">Financial</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Charge (LKR)</label><input type="text" inputMode="decimal" value={form.delivery_charge} onChange={handleChange('delivery_charge')} placeholder="0.00" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg" /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 mb-1">COD Amount (LKR)</label><input type="text" inputMode="decimal" value={form.cod_amount} onChange={handleChange('cod_amount')} placeholder="0.00" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Payment</label><select value={form.payment_status} onChange={handleChange('payment_status')} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg">
               <option value="pending">Pending</option><option value="paid">Paid</option><option value="cod">Cash on Delivery</option><option value="partial">Partial</option>
