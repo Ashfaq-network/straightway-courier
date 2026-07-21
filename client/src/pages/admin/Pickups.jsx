@@ -10,8 +10,8 @@ const statusColors = {
 const defaultPickupForm = {
   tracking_number: '', client_id: '',
   sender_name: '', sender_phone: '', sender_address: '',
-  origin: '', destination: '', parcel_type: '',
-  num_items: 1, pickup_scheduled_at: '', pickup_driver_id: '',
+  parcel_type: '',
+  num_items: '', pickup_scheduled_at: '', pickup_driver_id: '',
 };
 
 export default function Pickups({ onBack }) {
@@ -85,6 +85,8 @@ export default function Pickups({ onBack }) {
           ...pickupForm,
           client_id: pickupForm.client_id || null,
           receiver_name: pickupForm.sender_name, receiver_phone: pickupForm.sender_phone,
+          origin: pickupForm.sender_address || 'N/A',
+          destination: pickupForm.sender_address || 'N/A',
           delivery_type: '', cod_amount: '', delivery_charge: '',
           payment_status: 'pending', status: 'pickup_requested',
         })
@@ -177,7 +179,7 @@ export default function Pickups({ onBack }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">No. of Parcels</label>
-              <input type="number" min="1" value={pickupForm.num_items} onChange={(e) => setPickupForm({...pickupForm, num_items: parseInt(e.target.value) || 1})}
+              <input type="text" inputMode="numeric" placeholder="e.g. 2" value={pickupForm.num_items} onChange={(e) => setPickupForm({...pickupForm, num_items: e.target.value})}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             </div>
           </div>
@@ -190,18 +192,6 @@ export default function Pickups({ onBack }) {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
               <input type="text" placeholder="Address" value={pickupForm.sender_address} onChange={(e) => setPickupForm({...pickupForm, sender_address: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Origin *</label>
-              <input type="text" required value={pickupForm.origin} onChange={(e) => setPickupForm({...pickupForm, origin: e.target.value})}
-                placeholder="e.g. Colombo" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Destination *</label>
-              <input type="text" required value={pickupForm.destination} onChange={(e) => setPickupForm({...pickupForm, destination: e.target.value})}
-                placeholder="e.g. Kandy" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
