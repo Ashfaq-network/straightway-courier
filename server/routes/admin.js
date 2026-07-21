@@ -202,9 +202,6 @@ router.post('/shipments', async (req, res) => {
     ]);
 
     const shipment = result.rows[0];
-    if (pickup_id) {
-      await query(`UPDATE shipments SET status='at_sorting_center' WHERE id=$1 AND status IN ('pickup_requested','picked_up')`, [pickup_id]);
-    }
     await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description)
       VALUES ($1, 'pickup_requested', 'Pickup Requested', 'Pickup has been requested')`, [shipment.id]);
     await query(`INSERT INTO activity_logs (admin_id, action, details)
