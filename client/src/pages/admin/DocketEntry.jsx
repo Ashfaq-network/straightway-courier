@@ -201,6 +201,7 @@ export default function DocketEntry({ onBack }) {
           sender_name: form.sender_name,
           sender_phone: form.sender_phone,
           sender_address: form.sender_address,
+          num_items: '1',
           docket_date: new Date().toISOString().slice(0, 16),
         });
         const pr = await fetch(`${API}/pickups?client_id=${form.client_id}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
