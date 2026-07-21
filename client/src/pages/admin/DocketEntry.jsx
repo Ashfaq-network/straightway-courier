@@ -290,14 +290,16 @@ export default function DocketEntry({ onBack }) {
     }
   };
 
-  const handlePickupSelect = (pickupId) => {
+  const handlePickupSelect = async (pickupId) => {
     const pickup = pickups.find(p => String(p.id) === String(pickupId));
     if (pickup) {
       setSelectedPickupId(pickupId);
       setRemainingItems(pickup.remaining_items);
+      const res = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      const newTracking = res.ok ? (await res.json()).tracking_number : '';
       setForm({
         ...form,
-        tracking_number: pickup.tracking_number || form.tracking_number,
+        tracking_number: newTracking,
         sender_name: pickup.sender_name || form.sender_name,
         sender_phone: pickup.sender_phone || form.sender_phone,
         sender_address: pickup.sender_address || form.sender_address,
