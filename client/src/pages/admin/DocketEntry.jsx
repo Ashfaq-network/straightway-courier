@@ -444,11 +444,16 @@ export default function DocketEntry({ onBack }) {
               </select>
             </div>
           )}
-          {selectedPickupId && (
-            <div className="mb-4 text-sm text-gray-500">
-              Pickup: <span className="font-semibold text-brand-600">{pickups.find(p => String(p.id) === String(selectedPickupId))?.tracking_number}</span>
-            </div>
-          )}
+          {selectedPickupId && (() => {
+            const p = pickups.find(p => String(p.id) === String(selectedPickupId));
+            return p ? (
+              <div className="mb-4 text-sm text-gray-500">
+                Pickup: <span className="font-semibold text-brand-600">{p.tracking_number}</span>
+                {' | '}Parcels: <span className="font-semibold text-brand-600">{p.num_items}</span>
+                {p.remaining_items != null && <> ({p.remaining_items} remaining)</>}
+              </div>
+            ) : null;
+          })()}
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
             <div>
