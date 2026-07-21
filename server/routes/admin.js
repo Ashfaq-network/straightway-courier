@@ -406,7 +406,7 @@ router.get('/pickups', async (req, res) => {
   try {
     const { status, search } = req.query;
     let sql = `SELECT s.*, d.name AS driver_name, d.phone AS driver_phone,
-      c.company_name AS client_name
+      COALESCE(c.company_name, c.contact_person) AS client_name
       FROM shipments s
       LEFT JOIN delivery_staff d ON s.pickup_driver_id = d.id
       LEFT JOIN clients c ON s.client_id = c.id
