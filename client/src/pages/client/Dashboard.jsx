@@ -86,7 +86,12 @@ export default function ClientDashboard() {
         method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
         body: JSON.stringify(profileForm)
       });
-      if (res.ok) { setProfileMsg('Profile updated'); sessionStorage.setItem('client_user', JSON.stringify(await res.json())); }
+      if (res.ok) {
+        const updated = await res.json();
+        setProfile(updated);
+        sessionStorage.setItem('client_user', JSON.stringify(updated));
+        setProfileMsg('Profile updated');
+      }
       else { setProfileMsg('Failed to update'); }
     } catch (err) { setProfileMsg(err.message); } finally { setProfileSaving(false); }
   };

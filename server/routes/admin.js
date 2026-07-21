@@ -277,7 +277,7 @@ router.put('/shipments/:id/status', async (req, res) => {
     await query(`INSERT INTO activity_logs (admin_id, action, details)
       VALUES ($1, 'update_status', $2)`, [req.user?.id || null, `Updated shipment #${req.params.id} to ${status}`]);
 
-    const notifyStatuses = ['picked_up', 'at_sorting_center', 'out_for_delivery', 'delivered', 'rescheduled', 'failed_delivery'];
+    const notifyStatuses = ['picked_up', 'at_sorting_center', 'out_for_delivery', 'delivered', 'rescheduled', 'failed_delivery', 'returned_to_sender'];
     if (shipment.rows[0].receiver_email && notifyStatuses.includes(status)) {
       sendTrackingEmail({ ...shipment.rows[0], status }).catch(() => {});
     }

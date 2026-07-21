@@ -10,6 +10,7 @@ import Reports from './Reports';
 import StaffManagement from './StaffManagement';
 import DeliverySheet from './DeliverySheet';
 import Waybill from '../../components/Waybill';
+import Messages from './Messages';
 
 const API = '/api/admin';
 
@@ -261,6 +262,7 @@ export default function AdminDashboard() {
                   </td>
                   <td className="px-4 py-3 text-center text-xs">{s.delivery_charge ? `LKR ${s.delivery_charge}` : '-'}</td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <a href={`/waybill.html?tracking=${s.tracking_number}`} target="_blank" className="text-gray-500 hover:text-gray-700 hover:underline text-xs mr-2">Print</a>
                     <button onClick={() => setWaybillShipment(s)} className="text-gray-500 hover:text-gray-700 hover:underline text-xs mr-2">Waybill</button>
                     <button onClick={() => viewTracking(s.id)} className="text-teal-500 hover:underline text-xs mr-2">Track</button>
                     <button onClick={() => { setEditing(s); setShowForm(true); }} className="text-blue-500 hover:underline text-xs mr-2">Edit</button>

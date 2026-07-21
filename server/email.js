@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 const baseUrl = process.env.SITE_URL || 'https://straightwaycourier.vercel.app';
 
 function trackingUrl(trackingNumber) {
-  return `${baseUrl}/track?number=${trackingNumber}`;
+  return `${baseUrl}/track?q=${trackingNumber}`;
 }
 
 const templates = {

@@ -342,6 +342,10 @@ export default function StaffDashboard() {
                 }`}>
                 {isPickupDriver ? 'Start Pickup' : 'Update Delivery'}
               </button>
+              <a href={`/waybill.html?tracking=${s.tracking_number}`} target="_blank"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors touch-manipulation">
+                Print
+              </a>
               <button onClick={() => setWaybillShipment(s)}
                 className="w-full sm:w-auto px-4 py-2 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors touch-manipulation">
                 Waybill

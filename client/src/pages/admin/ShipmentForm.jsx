@@ -10,7 +10,7 @@ const defaultForm = {
   delivery_type: '', cod_amount: '', delivery_charge: '', payment_status: 'pending',
   special_instructions: '', tracking_number: '', status: 'pickup_requested',
   estimated_delivery: '', notes: '',
-  assigned_pickup_staff_id: '', assigned_delivery_staff_id: '',
+  pickup_driver_id: '', delivery_rider_id: '',
 };
 
 export default function ShipmentForm({ shipment, onDone, onCancel }) {
@@ -155,10 +155,10 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
         <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
           <h3 className="font-semibold text-gray-900 mb-4 text-sm uppercase tracking-wider">Staff Assignment</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Pickup Staff</label><select value={form.assigned_pickup_staff_id} onChange={handleChange('assigned_pickup_staff_id')} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg">
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Pickup Staff</label><select value={form.pickup_driver_id} onChange={handleChange('pickup_driver_id')} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg">
               <option value="">Not assigned</option>{staffList.filter(s => s.role === 'pickup_driver' || !s.role).map(staff => <option key={staff.id} value={staff.id}>{staff.name} ({staff.phone})</option>)}
             </select></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Delivery Staff</label><select value={form.assigned_delivery_staff_id} onChange={handleChange('assigned_delivery_staff_id')} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg">
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Delivery Staff</label><select value={form.delivery_rider_id} onChange={handleChange('delivery_rider_id')} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg">
               <option value="">Not assigned</option>{staffList.filter(s => s.role === 'delivery_rider' || !s.role).map(staff => <option key={staff.id} value={staff.id}>{staff.name} ({staff.phone})</option>)}
             </select></div>
           </div>
