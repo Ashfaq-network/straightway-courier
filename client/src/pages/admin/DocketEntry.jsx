@@ -414,9 +414,16 @@ export default function DocketEntry({ onBack }) {
     const pickup = pickups.find(p => String(p.id) === String(pickupId));
     if (pickup) {
       setSelectedPickupId(pickupId);
+      let tn = form.tracking_number;
+      if (!tn) {
+        try {
+          const r = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+          if (r.ok) tn = (await r.json()).tracking_number;
+        } catch {}
+      }
       setForm({
         ...form,
-        tracking_number: pickup.tracking_number || '',
+        tracking_number: tn,
         sender_name: pickup.sender_name || form.sender_name,
         sender_phone: pickup.sender_phone || form.sender_phone,
         sender_address: pickup.sender_address || form.sender_address,
