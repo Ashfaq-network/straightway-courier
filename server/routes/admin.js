@@ -422,7 +422,7 @@ router.get('/pickups', async (req, res) => {
       FROM shipments s
       LEFT JOIN delivery_staff d ON s.pickup_driver_id = d.id
       LEFT JOIN clients c ON s.client_id = c.id
-      WHERE s.status IN ('pickup_requested','picked_up') OR (s.status = 'at_sorting_center' AND s.num_items > COALESCE((SELECT SUM(ss.num_items) FROM shipments ss WHERE ss.pickup_id = s.id), 0))`;
+      WHERE (s.status IN ('pickup_requested','picked_up') OR (s.status = 'at_sorting_center' AND s.num_items > COALESCE((SELECT SUM(ss.num_items) FROM shipments ss WHERE ss.pickup_id = s.id), 0))) AND s.num_items > 0`;
     const params = [];
     let idx = 1;
     if (status) { sql += ` AND s.status = $${idx}`; params.push(status); idx++; }

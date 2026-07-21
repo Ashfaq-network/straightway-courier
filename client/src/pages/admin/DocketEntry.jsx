@@ -176,6 +176,8 @@ export default function DocketEntry({ onBack }) {
         if (!res.ok) { const d = await res.json(); alert(d.error); return; }
         shipment = await res.json();
       } else if (selectedPickupId) {
+        const currentPickup = pickups.find(p => String(p.id) === String(selectedPickupId));
+        const decItems = Math.max(0, (parseInt(currentPickup?.num_items) || 1) - 1);
         const body = {
           tracking_number: form.tracking_number,
           sw_tracking_number: form.sw_tracking_number || null,
@@ -190,15 +192,13 @@ export default function DocketEntry({ onBack }) {
           origin: form.sender_address || 'N/A',
           cod_amount: form.cod_amount || null,
           weight: form.weight,
-          num_items: 1,
+          num_items: decItems,
           special_instructions: form.special_instructions,
           sorting_area: form.sorting_area,
-          status: 'at_sorting_center',
           pickup_scheduled_at: form.docket_date || null,
-          pickup_id: Number(selectedPickupId),
         };
-        const res = await fetch(`${API}/shipments`, {
-          method: 'POST',
+        const res = await fetch(`${API}/shipments/${selectedPickupId}`, {
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
           body: JSON.stringify(body)
         });
@@ -417,16 +417,9 @@ export default function DocketEntry({ onBack }) {
     const pickup = pickups.find(p => String(p.id) === String(pickupId));
     if (pickup) {
       setSelectedPickupId(pickupId);
-      let tn = form.tracking_number;
-      if (!tn) {
-        try {
-          const r = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-          if (r.ok) tn = (await r.json()).tracking_number;
-        } catch {}
-      }
       setForm({
         ...form,
-        tracking_number: tn,
+        tracking_number: pickup.tracking_number || '',
         sender_name: pickup.sender_name || form.sender_name,
         sender_phone: pickup.sender_phone || form.sender_phone,
         sender_address: pickup.sender_address || form.sender_address,
@@ -441,10 +434,9 @@ export default function DocketEntry({ onBack }) {
   const fillFromPickup = async (pickup, clientId) => {
     if (!pickup) return;
     setSelectedPickupId(pickup.id);
-    const tn = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } }).then(r => r.json()).then(d => d.tracking_number);
     setForm({
       ...defaultForm,
-      tracking_number: tn,
+      tracking_number: pickup.tracking_number || '',
       client_id: clientId || '',
       sender_name: pickup.sender_name || '',
       sender_phone: pickup.sender_phone || '',
