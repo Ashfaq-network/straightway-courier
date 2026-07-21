@@ -431,9 +431,10 @@ export default function DocketEntry({ onBack }) {
   const fillFromPickup = async (pickup, clientId) => {
     if (!pickup) return;
     setSelectedPickupId(pickup.id);
+    const tn = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } }).then(r => r.json()).then(d => d.tracking_number);
     setForm({
       ...defaultForm,
-      tracking_number: pickup.tracking_number || '',
+      tracking_number: tn,
       client_id: clientId || '',
       sender_name: pickup.sender_name || '',
       sender_phone: pickup.sender_phone || '',
