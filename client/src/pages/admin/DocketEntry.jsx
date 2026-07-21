@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const API = '/api/admin';
 
@@ -51,6 +51,7 @@ export default function DocketEntry({ onBack }) {
   const [selectedPickupId, setSelectedPickupId] = useState(null);
   const [assignForm, setAssignForm] = useState({ id: null, rider_id: '', sorting_area: '' });
   const [postalSuggestions, setPostalSuggestions] = useState([]);
+  const submittingRef = useRef(false);
 
   const getToken = () => sessionStorage.getItem('swc_token');
 
@@ -142,6 +143,8 @@ export default function DocketEntry({ onBack }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSaving(true);
     try {
       let shipment;
@@ -270,7 +273,7 @@ export default function DocketEntry({ onBack }) {
         }
       }
       fetchItems(search);
-    } catch (err) { alert(err.message); } finally { setSaving(false); }
+    } catch (err) { alert(err.message); } finally { setSaving(false); submittingRef.current = false; }
   };
 
   const handlePostalChange = (val) => {
