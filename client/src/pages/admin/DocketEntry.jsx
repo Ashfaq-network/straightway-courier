@@ -2,15 +2,39 @@ import { useState, useEffect } from 'react';
 
 const API = '/api/admin';
 
+const localDT = () => {
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 16);
+};
+
 const defaultForm = {
   tracking_number: '', sw_tracking_number: '', client_id: '',
   sender_name: '', sender_phone: '', sender_address: '',
   receiver_name: '', receiver_phone: '', receiver_address: '',
   destination: '',
   num_items: '', weight: '', cod_amount: '',
-  docket_date: new Date().toISOString().slice(0, 16),
+  docket_date: localDT(),
   sorting_area: '',
   special_instructions: '',
+};
+
+const POSTAL_CODES = {
+  '00100':'Fort','00200':'Slave Island','00300':'Colpetty','00400':'Bambalapitiya',
+  '00500':'Havelock Town','00600':'Kirulapone','00700':'Wellawatte','00800':'Borella',
+  '00900':'Dematagoda','01000':'Maradana','01100':'Pettah','01200':'Hulftsdorp',
+  '01300':'Maligawatta','01400':'Grandpass','01500':'Mutwal','10100':'Sri Jayawardenepura Kotte',
+  '10115':'Malabe','10120':'Battaramulla','10250':'Nugegoda','10280':'Maharagama',
+  '10290':'Boralesgamuwa','10350':'Dehiwala','10400':'Moratuwa','10640':'Kaduwela',
+  '11000':'Gampaha','11010':'Ragama','11450':'Katunayake','11500':'Negombo',
+  '12000':'Kalutara','12070':'Beruwala','12500':'Panadura','20000':'Kandy',
+  '20160':'Ampitiya','20400':'Peradeniya','20500':'Gampola','21100':'Dambulla',
+  '22000':'Nuwara Eliya','30000':'Batticaloa','31000':'Trincomalee','32000':'Ampara',
+  '40000':'Jaffna','50000':'Anuradhapura','51000':'Polonnaruwa','60000':'Kurunegala',
+  '61000':'Chilaw','61170':'Wennappuwa','70000':'Ratnapura','71000':'Kegalle',
+  '71200':'Undugoda','80000':'Galle','80240':'Hikkaduwa','80300':'Ambalangoda',
+  '81000':'Matara','81180':'Kottegoda','81700':'Weligama','82000':'Hambantota',
+  '90000':'Badulla','91000':'Monaragala',
 };
 
 export default function DocketEntry({ onBack }) {
@@ -26,6 +50,7 @@ export default function DocketEntry({ onBack }) {
   const [pickups, setPickups] = useState([]);
   const [selectedPickupId, setSelectedPickupId] = useState(null);
   const [assignForm, setAssignForm] = useState({ id: null, rider_id: '', sorting_area: '' });
+  const [postalSuggestions, setPostalSuggestions] = useState([]);
 
   const getToken = () => sessionStorage.getItem('swc_token');
 
@@ -87,7 +112,7 @@ export default function DocketEntry({ onBack }) {
       const r = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
       if (r.ok) tn = (await r.json()).tracking_number;
     } catch {}
-    setForm({ ...defaultForm, tracking_number: tn, docket_date: new Date().toISOString().slice(0, 16) });
+    setForm({ ...defaultForm, tracking_number: tn, docket_date: localDT() });
     setShowForm(true);
   };
 
@@ -107,7 +132,7 @@ export default function DocketEntry({ onBack }) {
       num_items: s.num_items || '',
       weight: s.weight || '',
       cod_amount: s.cod_amount || '',
-      docket_date: s.pickup_scheduled_at ? s.pickup_scheduled_at.slice(0, 16) : new Date().toISOString().slice(0, 16),
+      docket_date: s.pickup_scheduled_at ? s.pickup_scheduled_at.slice(0, 16) : localDT(),
       sorting_area: s.sorting_area || '',
       special_instructions: s.special_instructions || '',
     });
@@ -148,6 +173,8 @@ export default function DocketEntry({ onBack }) {
         if (!res.ok) { const d = await res.json(); alert(d.error); return; }
         shipment = await res.json();
       } else if (selectedPickupId) {
+        const currentPickup = pickups.find(p => String(p.id) === String(selectedPickupId));
+        const decItems = Math.max(1, (parseInt(currentPickup?.num_items) || 1) - 1);
         const body = {
           tracking_number: form.tracking_number,
           sw_tracking_number: form.sw_tracking_number || null,
@@ -157,6 +184,7 @@ export default function DocketEntry({ onBack }) {
           destination: form.destination || form.receiver_address || 'N/A',
           cod_amount: form.cod_amount || null,
           weight: form.weight,
+          num_items: decItems,
           special_instructions: form.special_instructions,
           sorting_area: form.sorting_area,
           status: 'at_sorting_center',
@@ -210,7 +238,7 @@ export default function DocketEntry({ onBack }) {
         setEditingId(null);
         setPickups([]);
         setSelectedPickupId(null);
-        setForm(defaultForm);
+        setForm({...defaultForm, docket_date: localDT()});
       } else {
         const currentPickup = pickups.find(p => String(p.id) === String(selectedPickupId));
         const remaining = currentPickup ? (currentPickup.remaining_items ?? currentPickup.num_items) - 1 : 0;
@@ -232,13 +260,30 @@ export default function DocketEntry({ onBack }) {
               sender_name: form.sender_name,
               sender_phone: form.sender_phone,
               sender_address: form.sender_address,
-              docket_date: new Date().toISOString().slice(0, 16),
+              docket_date: localDT(),
             });
           }
         }
       }
       fetchItems(search);
     } catch (err) { alert(err.message); } finally { setSaving(false); }
+  };
+
+  const handlePostalChange = (val) => {
+    setForm({ ...form, receiver_address: val });
+    if (val.length >= 3) {
+      const matches = Object.entries(POSTAL_CODES)
+        .filter(([code, city]) => code.startsWith(val) || city.toLowerCase().includes(val.toLowerCase()))
+        .slice(0, 6);
+      setPostalSuggestions(matches);
+    } else {
+      setPostalSuggestions([]);
+    }
+  };
+
+  const selectPostal = (code, city) => {
+    setForm({ ...form, receiver_address: code, destination: city });
+    setPostalSuggestions([]);
   };
 
   const handleAssign = async (e) => {
@@ -393,7 +438,7 @@ export default function DocketEntry({ onBack }) {
       weight: pickup.weight || '',
       destination: pickup.destination || '',
       special_instructions: pickup.special_instructions || '',
-      docket_date: new Date().toISOString().slice(0, 16),
+      docket_date: localDT(),
     });
   };
 
@@ -494,8 +539,18 @@ export default function DocketEntry({ onBack }) {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                 <input type="text" placeholder="Phone *" required value={form.receiver_phone} onChange={(e) => setForm({...form, receiver_phone: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                <input type="text" placeholder="Postal Code *" required value={form.receiver_address} onChange={(e) => setForm({...form, receiver_address: e.target.value})}
+                <input type="text" placeholder="Postal Code *" required value={form.receiver_address} onChange={(e) => handlePostalChange(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                {postalSuggestions.length > 0 && (
+                  <div className="border border-gray-200 rounded-lg bg-white shadow-sm mt-1 max-h-40 overflow-y-auto">
+                    {postalSuggestions.map(([code, city]) => (
+                      <button key={code} type="button" onClick={() => selectPostal(code, city)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                        <span className="font-medium">{code}</span> — {city}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -525,7 +580,7 @@ export default function DocketEntry({ onBack }) {
               className="px-5 py-2 bg-brand-500 text-white rounded-lg text-sm font-semibold hover:bg-brand-600 disabled:opacity-50">
               {saving ? 'Saving...' : editingId ? 'Update Docket' : 'Create Docket'}
             </button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setForm(defaultForm); setPickups([]); setSelectedPickupId(null); }}
+            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setForm({...defaultForm, docket_date: localDT()}); setPickups([]); setSelectedPickupId(null); }}
               className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm">Cancel</button>
           </div>
         </form>
