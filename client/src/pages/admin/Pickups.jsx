@@ -29,6 +29,14 @@ export default function Pickups({ onBack }) {
 
   useEffect(() => { fetchPickups(); fetchDrivers(); fetchClients(); }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(true);
+      fetchPickups(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const fetchPickups = async (q) => {
     try {
       const params = new URLSearchParams();
@@ -225,7 +233,6 @@ export default function Pickups({ onBack }) {
       <div className="mb-4">
         <input type="text" placeholder="Search by client, sender, tracking number..." value={search}
           onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { setLoading(true); fetchPickups(search); } }}
           className="w-full max-w-md px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
       </div>
 
