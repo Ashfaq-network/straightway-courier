@@ -49,6 +49,7 @@ export default function Register() {
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to register'); }
       setSubmitted(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       setError(err.message);
     } finally {
