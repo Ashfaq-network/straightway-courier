@@ -68,7 +68,14 @@ app.post('/api/register', async (req, res) => {
       [client_type || 'individual', company_name || null, contact_person, phone, email || null, address || null,
       nic_number || null, business_reg_number || null, bank_name || null, bank_branch || null, bank_account_number || null, bank_account_holder || null]);
 
-    sendRegistrationEmail(result.rows[0]).catch(err => console.error('Registration email error:', err.message, err.stack));
+    const emailResult = sendRegistrationEmail(result.rows[0]);
+    const emailTimeout = new Promise((_, rej) => setTimeout(() => rej(new Error('Email timed out')), 8000));
+    try {
+      await Promise.race([emailResult, emailTimeout]);
+      console.log('Registration email sent to:', contact_person);
+    } catch (emailErr) {
+      console.error('Registration email FAILED:', emailErr.message);
+    }
 
     res.status(201).json({ message: 'Registration successful! We will contact you shortly to set up your account.' });
   } catch (err) {
