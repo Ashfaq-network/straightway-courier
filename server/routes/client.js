@@ -104,14 +104,14 @@ router.post('/docket', async (req, res) => {
       sender_name, sender_phone, sender_address,
       receiver_name, receiver_phone, receiver_address, origin, destination,
       parcel_type, weight, num_items, cod_amount, status, sw_tracking_number)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'at_sorting_center',$15) RETURNING *`,
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'pending_scan',$15) RETURNING *`,
       [req.client.client_id, tracking_number,
       client.contact_person || '', client.phone || '', client.address || '',
       receiver_name, receiver_phone, receiver_address || null, client.address || 'N/A', receiver_address || 'N/A',
       parcel_type || null, weight || null, num_items || 1, cod_amount || 0, sw_tracking_number || null]);
 
     await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description)
-      VALUES ($1, 'at_sorting_center', 'At Sorting Center', 'Docket created via client portal')`, [result.rows[0].id]);
+      VALUES ($1, 'pending_scan', 'Pending Scan', 'Docket created via client portal — awaiting barcode scan')`, [result.rows[0].id]);
     res.status(201).json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });

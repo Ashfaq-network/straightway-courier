@@ -193,7 +193,7 @@ export default function DocketEntry({ onBack }) {
           num_items: 1,
           special_instructions: form.special_instructions,
           sorting_area: form.sorting_area,
-          status: 'at_sorting_center',
+          status: 'pending_scan',
           pickup_scheduled_at: form.docket_date || null,
           pickup_id: Number(selectedPickupId),
         };
@@ -221,7 +221,7 @@ export default function DocketEntry({ onBack }) {
           delivery_type: '',
           delivery_charge: '',
           payment_status: 'pending',
-          status: 'at_sorting_center',
+          status: 'pending_scan',
         };
         const res = await fetch(`${API}/shipments`, {
           method: 'POST',
@@ -657,7 +657,7 @@ export default function DocketEntry({ onBack }) {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
-                    {s.status === 'at_sorting_center' && (
+                    {(s.status === 'at_sorting_center' || s.status === 'pending_scan') && (
                       <>
                         <button onClick={() => openEdit(s)}
                           className="text-blue-500 hover:underline text-xs mr-2">Edit</button>

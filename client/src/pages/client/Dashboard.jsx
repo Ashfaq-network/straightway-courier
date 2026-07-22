@@ -4,13 +4,14 @@ import { useNavigate } from 'react-router-dom';
 const API = '/api/client';
 
 const statusLabels = {
-  pickup_requested: 'Pickup Requested', picked_up: 'Picked Up', at_sorting_center: 'At Sorting Center',
+  pending_scan: 'Pending Scan', pickup_requested: 'Pickup Requested', picked_up: 'Picked Up', at_sorting_center: 'At Sorting Center',
   sorted: 'Sorted', out_for_delivery: 'Out for Delivery', customer_contacted: 'Customer Contacted',
   delivered: 'Delivered', failed_delivery: 'Failed Delivery', returned_to_sender: 'Returned to Sender', rescheduled: 'Rescheduled',
 };
 const statusOrder = ['pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery','delivered'];
 
 const statusColors = {
+  pending_scan: 'bg-gray-100 text-gray-800',
   pickup_requested: 'bg-yellow-100 text-yellow-800', picked_up: 'bg-orange-100 text-orange-800',
   at_sorting_center: 'bg-violet-100 text-violet-800', sorted: 'bg-indigo-100 text-indigo-800',
   out_for_delivery: 'bg-blue-100 text-blue-800', customer_contacted: 'bg-teal-100 text-teal-800',

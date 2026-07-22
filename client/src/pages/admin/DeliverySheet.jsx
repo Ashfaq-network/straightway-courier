@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import JsBarcode from 'jsbarcode';
 
 const API = '/api/admin';
 
 const statusColors = {
+  pending_scan: 'bg-gray-100 text-gray-800',
   at_sorting_center: 'bg-violet-100 text-violet-800',
   sorted: 'bg-indigo-100 text-indigo-800',
   out_for_delivery: 'bg-blue-100 text-blue-800',
@@ -13,16 +13,6 @@ const statusColors = {
   returned_to_sender: 'bg-gray-200 text-gray-800',
   rescheduled: 'bg-cyan-100 text-cyan-800',
 };
-
-function Barcode({ value }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (ref.current && value) {
-      try { JsBarcode(ref.current, value, { format: 'CODE128', width: 1.2, height: 30, displayValue: true, fontSize: 11, margin: 2 }); } catch {}
-    }
-  }, [value]);
-  return <svg ref={ref} />;
-}
 
 export default function DeliverySheet({ onBack }) {
   const [items, setItems] = useState([]);
@@ -171,7 +161,7 @@ export default function DeliverySheet({ onBack }) {
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
           className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm">
           <option value="">All Statuses</option>
-          {['at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','returned_to_sender','rescheduled'].map(st => (
+          {['pending_scan','at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','returned_to_sender','rescheduled'].map(st => (
             <option key={st} value={st}>{st.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
           ))}
         </select>
@@ -228,7 +218,6 @@ export default function DeliverySheet({ onBack }) {
                         <tr>
                           <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">#</th>
                           <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">Tracking</th>
-                          <th className="text-left px-3 py-2 font-medium text-xs text-gray-600 print:hidden">Barcode</th>
                           <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">Receiver</th>
                           <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">Phone</th>
                           <th className="text-left px-3 py-2 font-medium text-xs text-gray-600">Address</th>
@@ -245,7 +234,6 @@ export default function DeliverySheet({ onBack }) {
                             <tr key={s.id} className="bg-amber-50">
                               <td className="px-3 py-2 text-xs text-gray-500">{i + 1}</td>
                               <td className="px-3 py-2 font-semibold text-gray-900 text-xs">{s.tracking_number}</td>
-                              <td className="px-3 py-2 print:hidden" />
                               <td className="px-3 py-2"><input value={editForm.receiver_name} onChange={e => setEditForm({...editForm, receiver_name: e.target.value})} className="px-2 py-1 border rounded text-xs w-full" /></td>
                               <td className="px-3 py-2"><input value={editForm.receiver_phone} onChange={e => setEditForm({...editForm, receiver_phone: e.target.value})} className="px-2 py-1 border rounded text-xs w-full" /></td>
                               <td className="px-3 py-2"><input value={editForm.delivery_address} onChange={e => setEditForm({...editForm, delivery_address: e.target.value})} className="px-2 py-1 border rounded text-xs w-full" /></td>
@@ -268,7 +256,6 @@ export default function DeliverySheet({ onBack }) {
                             <tr key={s.id} className={`hover:bg-gray-50 ${s.status === 'delivered' ? 'bg-green-50/50' : ''}`}>
                               <td className="px-3 py-2 text-xs text-gray-500">{i + 1}</td>
                               <td className="px-3 py-2 font-semibold text-gray-900 text-xs">{s.tracking_number}</td>
-                              <td className="px-3 py-2 print:hidden"><Barcode value={s.tracking_number} /></td>
                               <td className="px-3 py-2 text-gray-800 text-xs">{s.receiver_name}</td>
                               <td className="px-3 py-2 text-gray-600 text-xs">{s.receiver_phone}</td>
                               <td className="px-3 py-2 text-gray-600 text-xs max-w-[180px]">{s.delivery_address || s.receiver_address || '-'}</td>

@@ -20,6 +20,12 @@ function trackingUrl(trackingNumber) {
 }
 
 const templates = {
+  pending_scan: {
+    subject: (tn) => `⏳ Docket Created — ${tn}`,
+    heading: 'Your Docket Has Been Created',
+    body: 'Your docket has been created and is awaiting barcode scan to begin delivery processing.',
+    color: '#6b7280',
+  },
   picked_up: {
     subject: (tn) => `📦 Shipment Picked Up — ${tn}`,
     heading: 'Your Parcel Has Been Picked Up!',

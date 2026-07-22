@@ -128,6 +128,7 @@ export default function AdminDashboard() {
   ];
 
   const statusColors = {
+    pending_scan: 'bg-gray-100 text-gray-800',
     pickup_requested: 'bg-yellow-100 text-yellow-800',
     picked_up: 'bg-orange-100 text-orange-800',
     at_sorting_center: 'bg-purple-100 text-purple-800',
@@ -213,7 +214,7 @@ export default function AdminDashboard() {
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setTimeout(fetchShipments, 0); }}
             className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm">
             <option value="">All Statuses</option>
-            {['pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','returned_to_sender','rescheduled'].map(st => (
+            {['pending_scan','pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','returned_to_sender','rescheduled'].map(st => (
               <option key={st} value={st}>{st.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
             ))}
           </select>

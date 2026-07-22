@@ -1,5 +1,6 @@
 const eventConfig = {
   order_created: { color: 'bg-blue-500', ring: 'ring-blue-200', icon: '📋', label: 'Order Created' },
+  pending_scan: { color: 'bg-gray-400', ring: 'ring-gray-200', icon: '⏳', label: 'Pending Scan' },
   pickup_requested: { color: 'bg-yellow-500', ring: 'ring-yellow-200', icon: '📞', label: 'Pickup Requested' },
   picked_up: { color: 'bg-amber-500', ring: 'ring-amber-200', icon: '📦', label: 'Parcel Picked Up' },
   at_warehouse: { color: 'bg-purple-500', ring: 'ring-purple-200', icon: '🏢', label: 'Arrived at Warehouse' },

@@ -563,15 +563,14 @@ router.put('/scan/:tracking_number', async (req, res) => {
     const { receiver_name, remarks, rider_id } = req.body;
     const tn = req.params.tracking_number;
     const result = await query(
-      `UPDATE shipments SET status='delivered', delivered_by=$1, delivery_remarks=$2, delivered_at=CURRENT_TIMESTAMP,
-       delivery_rider_id = COALESCE($4, delivery_rider_id), updated_at=CURRENT_TIMESTAMP
+      `UPDATE shipments SET status='sorted', delivery_rider_id = COALESCE($4, delivery_rider_id), updated_at=CURRENT_TIMESTAMP
        WHERE (tracking_number=$3 OR sw_tracking_number=$3)
-       AND status IN ('at_sorting_center','sorted','out_for_delivery','customer_contacted')
+       AND status IN ('pending_scan','at_sorting_center')
        RETURNING *`,
       [receiver_name || null, remarks || null, tn, rider_id || null]);
-    if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found or already delivered' });
+    if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found or already in delivery' });
     await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description, staff_name)
-      VALUES ($1, 'delivered', 'Delivered', 'Delivered via scan', $2)`,
+      VALUES ($1, 'sorted', 'Sorted', 'Scanned and assigned for delivery', $2)`,
       [result.rows[0].id, receiver_name || null]);
     res.json(result.rows[0]);
   } catch (err) {
@@ -606,7 +605,7 @@ router.get('/delivery-sheet', async (req, res) => {
       FROM shipments s
       LEFT JOIN delivery_staff d ON s.delivery_rider_id = d.id
       LEFT JOIN clients c ON s.client_id = c.id
-      WHERE s.status IN ('at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','rescheduled')`;
+      WHERE s.status IN ('pending_scan','at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','rescheduled')`;
     const params = [];
     if (rider_id) { sql += ` AND s.delivery_rider_id = $1`; params.push(rider_id); }
     sql += ' ORDER BY rider_name, s.created_at DESC';
