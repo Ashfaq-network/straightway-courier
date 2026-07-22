@@ -18,11 +18,24 @@ const defaultForm = {
   bank_name: '', bank_branch: '', bank_account_number: '', bank_account_holder: '',
 };
 
+function Field({ label, name, value, onChange, type = 'text', required, placeholder }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}{required && ' *'}</label>
+      <input type={type} required={required} placeholder={placeholder || ''} value={value}
+        onChange={onChange}
+        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all" />
+    </div>
+  );
+}
+
 export default function Register() {
   const [form, setForm] = useState(defaultForm);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const update = (name) => (e) => setForm(prev => ({ ...prev, [name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,14 +56,7 @@ export default function Register() {
     }
   };
 
-  const Field = ({ label, name, type = 'text', required, placeholder, colSpan }) => (
-    <div className={colSpan || ''}>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}{required && ' *'}</label>
-      <input type={type} required={required} placeholder={placeholder || ''} value={form[name]}
-        onChange={(e) => setForm({...form, [name]: e.target.value})}
-        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all" />
-    </div>
-  );
+  const inputClass = "w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all";
 
   return (
     <div className="min-h-screen pt-24 pb-16 bg-gray-50">
@@ -85,24 +91,21 @@ export default function Register() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Client Type *</label>
-                  <select value={form.client_type} onChange={(e) => setForm({...form, client_type: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent">
+                  <select value={form.client_type} onChange={update('client_type')} className={inputClass}>
                     <option value="business">Business</option>
                     <option value="individual">Individual</option>
                   </select>
                 </div>
-                <Field label="Company Name" name="company_name" placeholder="Your company name" />
-                <Field label="Contact Person *" name="contact_person" required placeholder="Full name" />
-                <Field label="Phone Number *" name="phone" required placeholder="077 123 4567" />
-                <Field label="Email" name="email" type="email" placeholder="you@company.com" />
+                <Field label="Company Name" name="company_name" value={form.company_name} onChange={update('company_name')} placeholder="Your company name" />
+                <Field label="Contact Person" name="contact_person" value={form.contact_person} onChange={update('contact_person')} required placeholder="Full name" />
+                <Field label="Phone Number" name="phone" value={form.phone} onChange={update('phone')} required placeholder="077 123 4567" />
+                <Field label="Email" name="email" value={form.email} onChange={update('email')} type="email" placeholder="you@company.com" />
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Address</label>
-                  <input type="text" placeholder="Business address" value={form.address}
-                    onChange={(e) => setForm({...form, address: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
+                  <input type="text" placeholder="Business address" value={form.address} onChange={update('address')} className={inputClass} />
                 </div>
-                <Field label="NIC Number" name="nic_number" placeholder="NIC number" />
-                <Field label="Business Registration #" name="business_reg_number" placeholder="BR number" />
+                <Field label="NIC Number" name="nic_number" value={form.nic_number} onChange={update('nic_number')} placeholder="NIC number" />
+                <Field label="Business Registration #" name="business_reg_number" value={form.business_reg_number} onChange={update('business_reg_number')} placeholder="BR number" />
               </div>
             </motion.div>
 
@@ -115,10 +118,10 @@ export default function Register() {
                 <h2 className="font-semibold text-gray-900">Bank Details</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Bank Name" name="bank_name" placeholder="e.g. Commercial Bank" />
-                <Field label="Branch" name="bank_branch" placeholder="e.g. Colombo Fort" />
-                <Field label="Account Number" name="bank_account_number" placeholder="Account number" />
-                <Field label="Account Holder Name" name="bank_account_holder" placeholder="Name on account" />
+                <Field label="Bank Name" name="bank_name" value={form.bank_name} onChange={update('bank_name')} placeholder="e.g. Commercial Bank" />
+                <Field label="Branch" name="bank_branch" value={form.bank_branch} onChange={update('bank_branch')} placeholder="e.g. Colombo Fort" />
+                <Field label="Account Number" name="bank_account_number" value={form.bank_account_number} onChange={update('bank_account_number')} placeholder="Account number" />
+                <Field label="Account Holder Name" name="bank_account_holder" value={form.bank_account_holder} onChange={update('bank_account_holder')} placeholder="Name on account" />
               </div>
             </motion.div>
 
