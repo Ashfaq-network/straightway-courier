@@ -20,35 +20,16 @@ export default function DeliverySheet() {
   const [riders, setRiders] = useState([]);
   const [riderFilter, setRiderFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [scanMode, setScanMode] = useState(false);
-  const [scanResult, setScanResult] = useState('');
-  const [scanStatus, setScanStatus] = useState('');
   const [physicalScanValue, setPhysicalScanValue] = useState('');
   const [physicalScanStatus, setPhysicalScanStatus] = useState('');
   const [editItem, setEditItem] = useState(null);
   const [editForm, setEditForm] = useState({});
-  const scannerRef = useRef(null);
   const physicalScanRef = useRef(null);
   const physicalScanTimer = useRef(null);
 
   const getToken = () => sessionStorage.getItem('swc_token');
 
   useEffect(() => { fetchRiders(); fetchSheet(); }, []);
-
-  useEffect(() => {
-    if (!scanMode) { stopScanner(); return; }
-    startScanner();
-    return () => stopScanner();
-  }, [scanMode]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (physicalScanRef.current && document.activeElement !== physicalScanRef.current) {
-        physicalScanRef.current.focus();
-      }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
 
   const fetchRiders = async () => {
     try {
@@ -67,28 +48,6 @@ export default function DeliverySheet() {
   };
 
   useEffect(() => { fetchSheet(); }, [riderFilter]);
-
-  const startScanner = async () => {
-    try {
-      const { Html5Qrcode } = await import('html5-qrcode');
-      const scanner = new Html5Qrcode('scanner-container');
-      scannerRef.current = scanner;
-      await scanner.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        onScanSuccess,
-        () => {}
-      );
-    } catch (err) { console.error('Scanner error:', err); setScanStatus('Camera access denied or not available'); }
-  };
-
-  const stopScanner = () => {
-    if (scannerRef.current) {
-      scannerRef.current.stop().catch(() => {});
-      scannerRef.current.clear().catch(() => {});
-      scannerRef.current = null;
-    }
-  };
 
   const processScan = useCallback(async (trackingNumber) => {
     const tn = trackingNumber.trim();
@@ -135,26 +94,6 @@ export default function DeliverySheet() {
       }
     }
   };
-
-  const onScanSuccess = useCallback(async (decodedText) => {
-    setScanResult(decodedText);
-    setScanStatus('Scanning...');
-    try {
-      const res = await fetch(`${API}/scan/${encodeURIComponent(decodedText)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-        body: JSON.stringify({ receiver_name: 'Scanned Delivery', remarks: 'Delivered via barcode scan', rider_id: riderFilter || null })
-      });
-      if (res.ok) {
-        setScanStatus(`✓ ${decodedText} — Sorted & assigned!`);
-        fetchSheet();
-      } else {
-        const d = await res.json();
-        setScanStatus(`✗ ${decodedText} — ${d.error}`);
-      }
-    } catch { setScanStatus(`✗ ${decodedText} — Network error`); }
-    setTimeout(() => { setScanResult(''); }, 3000);
-  }, [riderFilter]);
 
   const handleEdit = (item) => {
     setEditItem(item.id);
@@ -272,31 +211,12 @@ export default function DeliverySheet() {
             <option key={st} value={st}>{st.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
           ))}
         </select>
-        <button onClick={() => setScanMode(!scanMode)}
-          className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all active:scale-[0.97] ${scanMode ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:shadow-lg hover:shadow-blue-500/25'}`}>
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          {scanMode ? 'Stop Camera' : 'Camera Scan'}
-        </button>
         <button onClick={() => window.print()}
           className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
           Print
         </button>
       </div>
-
-      {/* Camera Scanner */}
-      {scanMode && (
-        <div className="no-print bg-gray-900 rounded-2xl p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <p className="text-white text-sm font-semibold">Camera Scanner Active</p>
-          </div>
-          <div id="scanner-container" className="rounded-xl overflow-hidden mb-4" style={{ maxWidth: 400 }} />
-          {scanResult && <p className="text-white text-sm font-mono">Last scan: {scanResult}</p>}
-          {scanStatus && <p className={`text-sm font-semibold mt-1 ${scanStatus.startsWith('✓') ? 'text-green-400' : scanStatus.startsWith('✗') ? 'text-red-400' : 'text-yellow-400'}`}>{scanStatus}</p>}
-          <p className="text-gray-500 text-xs mt-2">Point camera at parcel barcode to scan</p>
-        </div>
-      )}
 
       {/* Print Header */}
       <div className="print-area">
