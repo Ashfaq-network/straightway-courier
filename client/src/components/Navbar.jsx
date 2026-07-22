@@ -56,6 +56,12 @@ export default function Navbar() {
               className="px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-lg hover:bg-green-600 transition-colors">
               WhatsApp
             </a>
+            <Link to="/register"
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                isHome ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-teal-500 text-white hover:bg-teal-600'
+              }`}>
+              Register
+            </Link>
           </div>
 
           <button
@@ -99,6 +105,10 @@ export default function Navbar() {
               className="block px-6 py-3.5 text-sm font-medium text-green-600 bg-green-50 border-l-2 border-green-500">
               WhatsApp
             </a>
+            <Link to="/register" onClick={() => setOpen(false)}
+              className="block px-6 py-3.5 text-sm font-medium text-teal-600 bg-teal-50 border-l-2 border-teal-500">
+              Register
+            </Link>
           </motion.div>
         )}
       </AnimatePresence>

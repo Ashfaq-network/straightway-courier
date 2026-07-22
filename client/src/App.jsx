@@ -18,6 +18,7 @@ const StaffLogin = lazy(() => import('./pages/staff/Login'));
 const StaffDashboard = lazy(() => import('./pages/staff/Dashboard'));
 const ClientLogin = lazy(() => import('./pages/client/Login'));
 const ClientDashboard = lazy(() => import('./pages/client/Dashboard'));
+const Register = lazy(() => import('./pages/Register'));
 
 function Loader() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/staff/dashboard" element={<StaffRoute><StaffDashboard /></StaffRoute>} />
             <Route path="/client" element={<ClientLogin />} />
             <Route path="/client/dashboard" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
+            <Route path="/register" element={<Register />} />
           </Routes>
         </Suspense>
       </main>

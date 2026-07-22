@@ -154,6 +154,13 @@ export async function initDB() {
   await addCol('shipments', 'pickup_id', 'INTEGER REFERENCES shipments(id)');
   await pool.query('ALTER TABLE shipments DROP CONSTRAINT IF EXISTS shipments_tracking_number_key');
 
+  await addCol('clients', 'nic_number', 'TEXT');
+  await addCol('clients', 'business_reg_number', 'TEXT');
+  await addCol('clients', 'bank_name', 'TEXT');
+  await addCol('clients', 'bank_branch', 'TEXT');
+  await addCol('clients', 'bank_account_number', 'TEXT');
+  await addCol('clients', 'bank_account_holder', 'TEXT');
+
   // ─── Tracking Events ───────────────────────────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tracking_events (
