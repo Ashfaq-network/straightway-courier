@@ -87,7 +87,7 @@ export default function DeliverySheet() {
         body: JSON.stringify({ receiver_name: 'Scanned Delivery', remarks: 'Delivered via barcode scan', rider_id: riderFilter || null })
       });
       if (res.ok) {
-        setScanStatus(`✓ ${decodedText} — Delivered!`);
+        setScanStatus(`✓ ${decodedText} — Sorted & assigned!`);
         fetchSheet();
       } else {
         const d = await res.json();
