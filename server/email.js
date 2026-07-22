@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 
 const smtpHost = process.env.SMTP_HOST;
+console.log('SMTP configured:', !!smtpHost, smtpHost || '(none)');
 const transporter = smtpHost ? nodemailer.createTransport({
   host: smtpHost,
   port: parseInt(process.env.SMTP_PORT || '587'),
