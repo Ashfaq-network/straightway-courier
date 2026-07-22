@@ -1,14 +1,15 @@
 import nodemailer from 'nodemailer';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+const smtpHost = process.env.SMTP_HOST;
+const transporter = smtpHost ? nodemailer.createTransport({
+  host: smtpHost,
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: process.env.SMTP_SECURE === 'true',
   auth: {
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '',
   },
-});
+}) : null;
 
 const baseUrl = process.env.SITE_URL || 'https://straightwaycourier.vercel.app';
 
@@ -134,14 +135,14 @@ export function sendRegistrationEmail(client) {
     </div>
   `;
 
-  return transporter.sendMail({
+  return transporter ? transporter.sendMail({
     from: process.env.SMTP_FROM || '"Straightway Couriers" <straightwaycouriers@gmail.com>',
     to: adminEmail,
     subject: `New ${isBusiness ? 'Business' : 'Individual'} Client Registered — ${client.company_name || client.contact_person}`,
     html,
   }).catch(err => {
     console.error('Registration email failed:', err.message);
-  });
+  }) : Promise.resolve();
 }
 
 export function sendTrackingEmail(shipment) {
@@ -150,7 +151,7 @@ export function sendTrackingEmail(shipment) {
 
   const tpl = templates[shipment.status] || defaultTemplate;
 
-  return transporter.sendMail({
+  return transporter ? transporter.sendMail({
     from: process.env.SMTP_FROM || '"Straightway Couriers" <straightwaycouriers@gmail.com>',
     to: receiver_email,
     subject: tpl.subject(tracking_number),
@@ -164,5 +165,5 @@ export function sendTrackingEmail(shipment) {
     }),
   }).catch(err => {
     console.error('Email send failed:', err.message);
-  });
+  }) : Promise.resolve();
 }

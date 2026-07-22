@@ -69,6 +69,7 @@ app.post('/api/register', async (req, res) => {
       nic_number || null, business_reg_number || null, bank_name || null, bank_branch || null, bank_account_number || null, bank_account_holder || null]);
 
     sendRegistrationEmail(result.rows[0]).catch(() => {});
+    console.log('Registration email queued for:', contact_person, '→ SMTP configured:', !!process.env.SMTP_HOST);
 
     res.status(201).json({ message: 'Registration successful! We will contact you shortly to set up your account.' });
   } catch (err) {
