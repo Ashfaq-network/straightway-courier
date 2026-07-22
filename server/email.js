@@ -4,12 +4,13 @@ const smtpHost = process.env.SMTP_HOST;
 console.log('SMTP configured:', !!smtpHost, smtpHost || '(none)');
 const transporter = smtpHost ? nodemailer.createTransport({
   host: smtpHost,
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true',
+  port: parseInt(process.env.SMTP_PORT || '465'),
+  secure: process.env.SMTP_SECURE !== 'false',
   auth: {
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '',
   },
+  connectionTimeout: 5000,
 }) : null;
 
 const baseUrl = process.env.SITE_URL || 'https://straightwaycourier.vercel.app';
