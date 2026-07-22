@@ -190,7 +190,7 @@ export default function DocketEntry() {
           origin: form.sender_address || 'N/A',
           cod_amount: form.cod_amount || null,
           weight: form.weight,
-          num_items: 1,
+          num_items: form.num_items || 1,
           special_instructions: form.special_instructions,
           sorting_area: form.sorting_area,
           status: 'pending_scan',
@@ -449,45 +449,66 @@ export default function DocketEntry() {
     });
   };
 
+  const statusBadge = (status) => {
+    const colors = {
+      pending_scan: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
+      at_sorting_center: 'bg-violet-50 text-violet-700 ring-1 ring-violet-200',
+      sorted: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200',
+      out_for_delivery: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
+      delivered: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+      failed_delivery: 'bg-red-50 text-red-700 ring-1 ring-red-200',
+    };
+    const cls = colors[status] || 'bg-gray-100 text-gray-700 ring-1 ring-gray-200';
+    return <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide ${cls}`}>{status.replace(/_/g, ' ')}</span>;
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">Docket Entry</h2>
-          <p className="text-[13px] text-gray-400 mt-0.5">Create, record & assign shipments at sorting center</p>
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Docket Entry</h2>
+            <p className="text-[13px] text-gray-400 mt-0.5">Create, record &amp; assign shipments at sorting center</p>
+          </div>
         </div>
-        <button onClick={openNew} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">
+        <button onClick={openNew}
+          className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-500/25 transition-all active:scale-[0.97]">
           + New Docket
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-gray-50 rounded-xl p-6 border border-gray-100 mb-6">
-          <h3 className="font-semibold text-gray-900 mb-4">{editingId ? 'Edit Docket Entry' : 'New Docket Entry'}</h3>
-          {!editingId && <div className="mb-4 text-xs text-gray-500">Docket #: <span className="font-semibold text-amber-600">{form.tracking_number}</span></div>}
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <h3 className="font-bold text-gray-900 text-base mb-1">{editingId ? 'Edit Docket Entry' : 'New Docket Entry'}</h3>
+          {!editingId && (
+            <p className="mb-5 text-[13px] text-gray-400">Docket # <span className="font-bold text-amber-600">{form.tracking_number}</span></p>
+          )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Client</label>
+              <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">Client</label>
               <select value={form.client_id} onChange={(e) => handleClientSelect(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all">
                 <option value="">Walk-in / No Client</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.company_name || c.contact_person}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">No. of Items</label>
+              <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">No. of Items</label>
               <input type="text" inputMode="numeric" value={form.num_items}
                 onChange={(e) => setForm({...form, num_items: e.target.value})}
                 disabled={!!selectedPickupId}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm disabled:bg-gray-100 disabled:text-gray-500" />
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed" />
             </div>
           </div>
 
           {pickups.length > 1 && (
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-gray-600 mb-1">From Pickup</label>
-              <select onChange={(e) => handlePickupSelect(e.target.value)} className="w-full max-w-md px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
+            <div className="mb-5">
+              <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">From Pickup</label>
+              <select onChange={(e) => handlePickupSelect(e.target.value)} className="w-full max-w-md px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all">
                 <option value="">Select a pickup...</option>
                 {pickups.map(p => <option key={p.id} value={p.id}>{p.tracking_number} — {p.sender_name}</option>)}
               </select>
@@ -496,198 +517,221 @@ export default function DocketEntry() {
           {selectedPickupId && (() => {
             const p = pickups.find(p => String(p.id) === String(selectedPickupId));
             return p ? (
-              <div className="mb-4 text-sm text-gray-500">
-                Pickup: <span className="font-semibold text-blue-700">{p.tracking_number}</span>
-                {' | '}Parcels: <span className="font-semibold text-blue-700">{p.num_items}</span>
+              <div className="mb-5 px-4 py-3 bg-blue-50/60 rounded-xl border border-blue-100 text-[13px] text-gray-600">
+                Pickup: <span className="font-bold text-blue-700">{p.tracking_number}</span>
+                {' \u00B7 '}Parcels: <span className="font-bold text-blue-700">{p.num_items}</span>
                 {p.remaining_items != null && <> ({p.remaining_items} remaining)</>}
-                {' | '}Docket #: <span className="font-semibold text-amber-600">{form.tracking_number}</span>
+                {' \u00B7 '}Docket #: <span className="font-bold text-amber-600">{form.tracking_number}</span>
               </div>
             ) : null;
           })()}
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Weight (kg)</label>
+              <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">Weight (kg)</label>
               <input type="text" inputMode="decimal" placeholder="e.g. 1.5" value={form.weight} onChange={(e) => setForm({...form, weight: e.target.value})}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Destination</label>
+              <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">Destination</label>
               <input type="text" value={form.destination} onChange={(e) => setForm({...form, destination: e.target.value})}
-                placeholder="e.g. Kandy" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                placeholder="e.g. Kandy" className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Date & Time</label>
+              <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">Date &amp; Time</label>
               <input type="datetime-local" value={form.docket_date} onChange={(e) => setForm({...form, docket_date: e.target.value})}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">SW Tracking # *</label>
+              <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">SW Tracking # *</label>
               <input type="text" required value={form.sw_tracking_number} onChange={(e) => setForm({...form, sw_tracking_number: e.target.value})}
-                placeholder="e.g. SW0001" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                placeholder="e.g. SW0001" className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">Sender</h4>
-              <div className="space-y-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+            <div className="border border-gray-100 rounded-2xl p-5 bg-gray-50/50">
+              <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3 pb-3 border-b border-gray-200/60">Sender</h4>
+              <div className="space-y-3">
                 <input type="text" placeholder="Name *" required value={form.sender_name} onChange={(e) => setForm({...form, sender_name: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                  className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
                 <input type="text" placeholder="Phone *" required value={form.sender_phone} onChange={(e) => setForm({...form, sender_phone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                  className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
                 <input type="text" placeholder="Address" value={form.sender_address} onChange={(e) => setForm({...form, sender_address: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                  className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
               </div>
             </div>
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">Receiver</h4>
-              <div className="space-y-2.5">
+            <div className="border border-gray-100 rounded-2xl p-5 bg-gray-50/50">
+              <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3 pb-3 border-b border-gray-200/60">Receiver</h4>
+              <div className="space-y-3">
                 <input type="text" placeholder="Name *" required value={form.receiver_name} onChange={(e) => setForm({...form, receiver_name: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                  className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
                 <input type="text" placeholder="Phone *" required value={form.receiver_phone} onChange={(e) => setForm({...form, receiver_phone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                <input type="text" placeholder="Postal Code *" required value={form.receiver_address} onChange={(e) => handlePostalChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                {postalSuggestions.length > 0 && (
-                  <div className="border border-gray-200 rounded-lg bg-white shadow-sm mt-1 max-h-40 overflow-y-auto">
-                    {postalSuggestions.map(([code, city]) => (
-                      <button key={code} type="button" onClick={() => selectPostal(code, city)}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b border-gray-100 last:border-0">
-                        <span className="font-medium">{code}</span> — {city}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                  className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                <div className="relative">
+                  <input type="text" placeholder="Postal Code *" required value={form.receiver_address} onChange={(e) => handlePostalChange(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
+                  {postalSuggestions.length > 0 && (
+                    <div className="absolute z-20 left-0 right-0 mt-1.5 border border-gray-200 rounded-xl bg-white shadow-lg overflow-hidden">
+                      {postalSuggestions.map(([code, city]) => (
+                        <button key={code} type="button" onClick={() => selectPostal(code, city)}
+                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
+                          <span className="font-bold text-gray-900">{code}</span> <span className="text-gray-400">—</span> <span className="text-gray-600">{city}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">COD Amount (Rs.)</label>
+              <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">COD Amount (Rs.)</label>
               <input type="text" inputMode="numeric" placeholder="e.g. 5000" value={form.cod_amount} onChange={(e) => setForm({...form, cod_amount: e.target.value})}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Sorting Area</label>
+              <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">Sorting Area</label>
               <input type="text" placeholder="e.g. Colombo 3" value={form.sorting_area} onChange={(e) => setForm({...form, sorting_area: e.target.value})}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
             </div>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-gray-600 mb-1">Special Instructions</label>
+          <div className="mb-5">
+            <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">Special Instructions</label>
             <textarea rows={2} placeholder="Notes for the delivery rider..." value={form.special_instructions}
               onChange={(e) => setForm({...form, special_instructions: e.target.value})}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all resize-none" />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2.5 pt-1">
             <button type="submit" disabled={saving}
-              className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+              className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-500/25 transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed">
               {saving ? 'Saving...' : editingId ? 'Update Docket' : 'Create Docket'}
             </button>
             <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setForm({...defaultForm, docket_date: localDT()}); setPickups([]); setSelectedPickupId(null); }}
-              className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm">Cancel</button>
+              className="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors">Cancel</button>
           </div>
         </form>
       )}
 
-      <div className="mb-4">
+      <div className="relative max-w-md">
+        <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
         <input type="text" placeholder="Search by docket#, sender, receiver..." value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+          className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
       </div>
 
       {assignForm.id && (
-        <form onSubmit={handleAssign} className="bg-gray-50 rounded-xl p-6 border border-gray-100 mb-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Assign to Delivery Rider</h3>
+        <form onSubmit={handleAssign} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <h3 className="font-bold text-gray-900 text-base mb-4">Assign to Delivery Rider</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <input type="text" placeholder="Sorting area (e.g. Colombo 3)" value={assignForm.sorting_area}
               onChange={(e) => setAssignForm({...assignForm, sorting_area: e.target.value})}
-              className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm" required />
+              className="px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" required />
             <select value={assignForm.rider_id} onChange={(e) => setAssignForm({...assignForm, rider_id: e.target.value})}
-              className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm" required>
+              className="px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" required>
               <option value="">Select rider</option>
               {riders.map(r => <option key={r.id} value={r.id}>{r.name} ({r.phone})</option>)}
             </select>
-            <div className="flex gap-2">
-              <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Assign</button>
-              <button type="button" onClick={() => setAssignForm({ id: null, rider_id: '', sorting_area: '' })} className="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancel</button>
+            <div className="flex gap-2.5">
+              <button type="submit" className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-500/25 transition-all active:scale-[0.97]">Assign</button>
+              <button type="button" onClick={() => setAssignForm({ id: null, rider_id: '', sorting_area: '' })} className="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors">Cancel</button>
             </div>
           </div>
         </form>
       )}
 
-      {loading ? <p className="text-gray-500">Loading...</p> : items.length === 0 ? (
-        <p className="text-gray-500">No docket entries found.</p>
-      ) : (
-        <div className="overflow-x-auto bg-white rounded-xl shadow border border-gray-100">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium">Docket #</th>
-                <th className="text-left px-4 py-3 font-medium">SW Tracking</th>
-                <th className="text-left px-4 py-3 font-medium">Sender</th>
-                <th className="text-left px-4 py-3 font-medium">Receiver</th>
-                <th className="text-left px-4 py-3 font-medium">Postal Code</th>
-                <th className="text-left px-4 py-3 font-medium">Items</th>
-                <th className="text-left px-4 py-3 font-medium">Area</th>
-                <th className="text-left px-4 py-3 font-medium">Rider</th>
-                <th className="text-left px-4 py-3 font-medium">Status</th>
-                <th className="text-right px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {items.map(s => (
-                <tr key={s.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{s.tracking_number}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{s.sw_tracking_number || '-'}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{s.sender_name}<br/><span className="text-gray-400">{s.sender_phone}</span></td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{s.receiver_name}<br/><span className="text-gray-400">{s.receiver_phone}</span></td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{s.receiver_address || '-'}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{s.num_items || '-'}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{s.sorting_area || '-'}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{s.rider_name || <span className="text-gray-400">—</span>}</td>
-                  <td className="px-4 py-3">
-                    <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800">
-                      {s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">
-                    {(s.status === 'at_sorting_center' || s.status === 'pending_scan') && (
-                      <>
-                        <button onClick={() => openEdit(s)}
-                          className="text-blue-500 hover:underline text-xs mr-2">Edit</button>
-                        <button onClick={() => setAssignForm({ id: s.id, rider_id: s.delivery_rider_id || '', sorting_area: s.sorting_area || '' })}
-                          className="text-purple-500 hover:underline text-xs mr-2">Assign</button>
-                        {s.delivery_rider_id && (
-                          <button onClick={() => handleSort(s.id)}
-                            className="text-indigo-500 hover:underline text-xs mr-2">Sort</button>
-                        )}
-                        <button onClick={() => handlePDF(s)}
-                          className="text-green-500 hover:underline text-xs mr-2">PDF</button>
-                        <button onClick={() => handleDelete(s.id, s.tracking_number)}
-                          className="text-red-400 hover:text-red-600 text-xs">Delete</button>
-                      </>
-                    )}
-                    {s.status === 'sorted' && (
-                      <>
-                        <button onClick={() => handlePDF(s)}
-                          className="text-green-500 hover:underline text-xs mr-2">PDF</button>
-                        <button onClick={() => handleDelete(s.id, s.tracking_number)}
-                          className="text-red-400 hover:text-red-600 text-xs mr-2">Delete</button>
-                        <span className="text-xs text-gray-400 italic">Sorted</span>
-                      </>
-                    )}
-                  </td>
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        {loading ? (
+          <div className="p-16 flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-gray-400 font-medium">Loading docket entries...</p>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="p-16 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+            </div>
+            <p className="text-gray-500 font-semibold">No docket entries found</p>
+            <p className="text-sm text-gray-400 mt-1 mb-4">Create your first docket entry to get started</p>
+            <button onClick={openNew} className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-500/25 transition-all">+ New Docket</button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Docket #</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">SW Tracking</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Sender</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Receiver</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Postal Code</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Items</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Area</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Rider</th>
+                  <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Status</th>
+                  <th className="text-right px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {items.map(s => (
+                  <tr key={s.id} className="hover:bg-gray-50/60 transition-colors group">
+                    <td className="px-6 py-4">
+                      <span className="font-bold text-blue-600 text-[13px] bg-blue-50 px-2.5 py-1 rounded-lg">{s.tracking_number}</span>
+                    </td>
+                    <td className="px-6 py-4 text-[13px] text-gray-500 font-medium">{s.sw_tracking_number || <span className="text-gray-300">—</span>}</td>
+                    <td className="px-6 py-4">
+                      <p className="text-[13px] font-medium text-gray-900">{s.sender_name}</p>
+                      <p className="text-[12px] text-gray-400 mt-0.5">{s.sender_phone}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-[13px] font-medium text-gray-900">{s.receiver_name}</p>
+                      <p className="text-[12px] text-gray-400 mt-0.5">{s.receiver_phone}</p>
+                    </td>
+                    <td className="px-6 py-4 text-[13px] text-gray-500">{s.receiver_address || <span className="text-gray-300">—</span>}</td>
+                    <td className="px-6 py-4 text-[13px] text-gray-500 font-medium">{s.num_items || <span className="text-gray-300">—</span>}</td>
+                    <td className="px-6 py-4 text-[13px] text-gray-500">{s.sorting_area || <span className="text-gray-300">—</span>}</td>
+                    <td className="px-6 py-4 text-[13px] text-gray-500">{s.rider_name || <span className="text-gray-300">—</span>}</td>
+                    <td className="px-6 py-4">{statusBadge(s.status)}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                        {(s.status === 'at_sorting_center' || s.status === 'pending_scan') && (
+                          <>
+                            <button onClick={() => openEdit(s)}
+                              className="px-2.5 py-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg text-[12px] font-medium transition-all">Edit</button>
+                            <button onClick={() => setAssignForm({ id: s.id, rider_id: s.delivery_rider_id || '', sorting_area: s.sorting_area || '' })}
+                              className="px-2.5 py-1.5 text-violet-600 hover:text-violet-700 hover:bg-violet-50 rounded-lg text-[12px] font-medium transition-all">Assign</button>
+                            {s.delivery_rider_id && (
+                              <button onClick={() => handleSort(s.id)}
+                                className="px-2.5 py-1.5 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg text-[12px] font-medium transition-all">Sort</button>
+                            )}
+                            <button onClick={() => handlePDF(s)}
+                              className="px-2.5 py-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg text-[12px] font-medium transition-all">PDF</button>
+                            <button onClick={() => handleDelete(s.id, s.tracking_number)}
+                              className="px-2.5 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-[12px] font-medium transition-all">Del</button>
+                          </>
+                        )}
+                        {s.status === 'sorted' && (
+                          <>
+                            <button onClick={() => handlePDF(s)}
+                              className="px-2.5 py-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg text-[12px] font-medium transition-all">PDF</button>
+                            <button onClick={() => handleDelete(s.id, s.tracking_number)}
+                              className="px-2.5 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-[12px] font-medium transition-all">Del</button>
+                            <span className="px-2.5 py-1.5 text-[12px] text-gray-400 italic font-medium">Sorted</span>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { AdminRoute, StaffRoute, ClientRoute } from './components/ProtectedRoute';
@@ -29,9 +29,12 @@ function Loader() {
 }
 
 export default function App() {
+  const location = useLocation();
+  const isDashboard = location.pathname.startsWith('/admin') || location.pathname.startsWith('/staff') || location.pathname.startsWith('/client');
+
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
+      {!isDashboard && <Navbar />}
       <main className="flex-1">
         <Suspense fallback={<Loader />}>
           <Routes>
@@ -53,7 +56,7 @@ export default function App() {
           </Routes>
         </Suspense>
       </main>
-      <Footer />
+      {!isDashboard && <Footer />}
     </div>
   );
 }

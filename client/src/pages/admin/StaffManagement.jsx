@@ -7,7 +7,7 @@ export default function StaffManagement() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editStaff, setEditStaff] = useState(null);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', username: '', password: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', username: '', password: '', role: 'delivery_rider' });
 
   useEffect(() => { fetchStaff(); }, []);
 
@@ -24,7 +24,7 @@ export default function StaffManagement() {
     e.preventDefault();
     const url = editStaff ? `${API}/staff/${editStaff.id}` : `${API}/staff`;
     const method = editStaff ? 'PUT' : 'POST';
-    const body = editStaff ? { name: form.name, phone: form.phone, email: form.email, username: form.username, is_active: true } : form;
+    const body = editStaff ? { name: form.name, phone: form.phone, email: form.email, username: form.username, role: form.role, is_active: true } : form;
 
     await fetch(url, {
       method,
@@ -34,7 +34,7 @@ export default function StaffManagement() {
 
     setShowForm(false);
     setEditStaff(null);
-    setForm({ name: '', phone: '', email: '', username: '', password: '' });
+    setForm({ name: '', phone: '', email: '', username: '', password: '', role: 'delivery_rider' });
     fetchStaff();
   };
 
@@ -49,7 +49,7 @@ export default function StaffManagement() {
 
   const handleEdit = (s) => {
     setEditStaff(s);
-    setForm({ name: s.name, phone: s.phone, email: s.email || '', username: s.username, password: '' });
+    setForm({ name: s.name, phone: s.phone, email: s.email || '', username: s.username, password: '', role: s.role || 'delivery_rider' });
     setShowForm(true);
   };
 
@@ -57,7 +57,7 @@ export default function StaffManagement() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">Delivery Staff Management</h2>
-        <button onClick={() => { setShowForm(true); setEditStaff(null); setForm({ name: '', phone: '', email: '', username: '', password: '' }); }}
+        <button onClick={() => { setShowForm(true); setEditStaff(null); setForm({ name: '', phone: '', email: '', username: '', password: '', role: 'delivery_rider' }); }}
           className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 text-sm transition-colors">
           + Add Staff
         </button>
@@ -81,6 +81,16 @@ export default function StaffManagement() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input type="email" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+              <select value={form.role} onChange={(e) => setForm({...form, role: e.target.value})}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+                <option value="delivery_rider">Delivery Rider</option>
+                <option value="pickup_driver">Pickup Driver</option>
+                <option value="sorting_staff">Sorting Staff</option>
+                <option value="office_staff">Office Staff</option>
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
@@ -116,6 +126,7 @@ export default function StaffManagement() {
             <thead className="bg-gray-50 text-gray-600">
               <tr>
                 <th className="text-left px-4 py-3 font-medium">Name</th>
+                <th className="text-left px-4 py-3 font-medium">Role</th>
                 <th className="text-left px-4 py-3 font-medium">Phone</th>
                 <th className="text-left px-4 py-3 font-medium">Username</th>
                 <th className="text-left px-4 py-3 font-medium">Status</th>
@@ -126,6 +137,11 @@ export default function StaffManagement() {
               {staff.map(s => (
                 <tr key={s.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">{s.name}</td>
+                  <td className="px-4 py-3 text-gray-600">
+                    <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700">
+                      {(s.role || 'office_staff').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-gray-600">{s.phone}</td>
                   <td className="px-4 py-3 text-gray-600">{s.username}</td>
                   <td className="px-4 py-3">
