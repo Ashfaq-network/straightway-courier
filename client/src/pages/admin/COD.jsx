@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 const API = '/api/admin';
 
-export default function COD({ onBack }) {
+export default function COD() {
   const [settlements, setSettlements] = useState([]);
   const [summary, setSummary] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,11 +51,10 @@ export default function COD({ onBack }) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-      <button onClick={onBack} className="text-brand-500 hover:underline text-sm mb-4 inline-block">&larr; Back to Dashboard</button>
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">COD Management</h2>
-        <button onClick={() => setShowSettle(true)} className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">+ New Settlement</button>
+        <button onClick={() => setShowSettle(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">+ New Settlement</button>
       </div>
 
       {showSettle && (
@@ -70,7 +69,7 @@ export default function COD({ onBack }) {
             <input type="text" placeholder="Notes" value={settleForm.notes} onChange={(e) => setSettleForm({...settleForm, notes: e.target.value})} className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
           </div>
           <div className="flex gap-2 mt-4">
-            <button type="submit" className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">Record</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Record</button>
             <button type="button" onClick={() => setShowSettle(false)} className="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancel</button>
           </div>
         </form>

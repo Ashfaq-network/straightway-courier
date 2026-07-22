@@ -23,7 +23,7 @@ const Register = lazy(() => import('./pages/Register'));
 function Loader() {
   return (
     <div className="flex items-center justify-center min-h-[50vh]">
-      <div className="w-8 h-8 border-3 border-teal-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }
@@ -44,7 +44,7 @@ export default function App() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/admin" element={<AdminLogin />} />
-            <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+            <Route path="/admin/dashboard/*" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             <Route path="/staff" element={<StaffLogin />} />
             <Route path="/staff/dashboard" element={<StaffRoute><StaffDashboard /></StaffRoute>} />
             <Route path="/client" element={<ClientLogin />} />

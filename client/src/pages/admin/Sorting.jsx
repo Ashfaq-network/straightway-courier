@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 const API = '/api/admin';
 
-export default function Sorting({ onBack }) {
+export default function Sorting() {
   const [items, setItems] = useState([]);
   const [riders, setRiders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,9 +40,8 @@ export default function Sorting({ onBack }) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-      <button onClick={onBack} className="text-brand-500 hover:underline text-sm mb-4 inline-block">&larr; Back to Dashboard</button>
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Sorting Center</h2>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+      <h2 className="text-xl font-bold text-gray-900">Sorting Center</h2>
 
       {assignForm.id && (
         <form onSubmit={handleAssign} className="bg-gray-50 rounded-xl p-6 border border-gray-100 mb-6">
@@ -57,7 +56,7 @@ export default function Sorting({ onBack }) {
               {riders.map(r => <option key={r.id} value={r.id}>{r.name} ({r.phone})</option>)}
             </select>
             <div className="flex gap-2">
-              <button type="submit" className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">Assign</button>
+              <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Assign</button>
               <button type="button" onClick={() => setAssignForm({ id: null, rider_id: '', sorting_area: '' })} className="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancel</button>
             </div>
           </div>

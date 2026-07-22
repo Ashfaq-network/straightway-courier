@@ -75,7 +75,7 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Tracking Number *</label>
           <input type="text" required value={form.tracking_number} onChange={handleChange('tracking_number')}
-            placeholder="Enter tracking number (e.g. SW0001)" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            placeholder="Enter tracking number (e.g. SW0001)" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" />
         </div>
 
         {/* Client */}
@@ -177,7 +177,7 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={loading} className="px-6 py-2.5 bg-brand-500 text-white font-semibold rounded-lg hover:bg-brand-600 disabled:opacity-50">
+          <button type="submit" disabled={loading} className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50">
             {loading ? 'Saving...' : isEdit ? 'Update Shipment' : 'Create Shipment'}
           </button>
           <button type="button" onClick={onCancel} className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>

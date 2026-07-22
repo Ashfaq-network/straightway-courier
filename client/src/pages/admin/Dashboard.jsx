@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import ShipmentForm from './ShipmentForm';
 import Clients from './Clients';
 import Pickups from './Pickups';
@@ -18,7 +18,7 @@ const navSections = [
   {
     label: 'Overview',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg> },
+      { id: '', label: 'Dashboard', icon: <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg> },
     ],
   },
   {
@@ -72,12 +72,17 @@ const quotes = [
 ];
 
 export default function AdminDashboard() {
-  const [tab, setTab] = useState('dashboard');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentQuote, setCurrentQuote] = useState(0);
+
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [stats, setStats] = useState(null);
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -85,10 +90,6 @@ export default function AdminDashboard() {
   const [trackData, setTrackData] = useState(null);
   const [trackLoading, setTrackLoading] = useState(false);
   const [waybillShipment, setWaybillShipment] = useState(null);
-  const [currentQuote, setCurrentQuote] = useState(0);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const navigate = useNavigate();
 
   let adminName = 'Admin';
   try {
@@ -104,9 +105,23 @@ export default function AdminDashboard() {
 
   const getToken = () => sessionStorage.getItem('swc_token');
 
+  const activeTab = useMemo(() => {
+    const path = location.pathname.replace('/admin/dashboard', '').replace(/^\//, '');
+    return path || '';
+  }, [location.pathname]);
+
+  const handleNav = (id) => {
+    navigate(`/admin/dashboard/${id}`);
+    setSidebarOpen(false);
+    setShowForm(false);
+    setEditing(null);
+    setTrackData(null);
+    setWaybillShipment(null);
+  };
+
   useEffect(() => {
-    if (tab === 'dashboard') { fetchStats(); fetchShipments(); }
-  }, [tab]);
+    if (activeTab === '') { fetchStats(); fetchShipments(); }
+  }, [activeTab]);
 
   const fetchStats = async () => {
     try {
@@ -128,16 +143,6 @@ export default function AdminDashboard() {
       if (res.ok) setShipments(await res.json());
       else if (res.status === 401) { sessionStorage.removeItem('swc_token'); navigate('/admin'); }
     } catch (err) { console.error(err); } finally { setLoading(false); }
-  };
-
-  const handleStatusUpdate = async (id, status) => {
-    await fetch(`${API}/shipments/${id}/status`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-      body: JSON.stringify({ status })
-    });
-    fetchShipments();
-    fetchStats();
   };
 
   const handleDelete = async (id) => {
@@ -164,11 +169,6 @@ export default function AdminDashboard() {
     navigate('/admin');
   };
 
-  const handleNav = (id) => {
-    setTab(id);
-    setSidebarOpen(false);
-  };
-
   const greet = () => {
     const h = currentTime.getHours();
     if (h < 12) return 'Good morning';
@@ -179,30 +179,25 @@ export default function AdminDashboard() {
   const dateStr = currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const timeStr = currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-  if (tab === 'clients') return <Clients onBack={() => setTab('dashboard')} />;
-  if (tab === 'pickups') return <Pickups onBack={() => setTab('dashboard')} />;
-  if (tab === 'docket-entry') return <DocketEntry onBack={() => setTab('dashboard')} />;
-  if (tab === 'deliveries') return <Deliveries onBack={() => setTab('dashboard')} />;
-  if (tab === 'cod') return <COD onBack={() => setTab('dashboard')} />;
-  if (tab === 'reports') return <Reports onBack={() => setTab('dashboard')} />;
-  if (tab === 'staff') return <StaffManagement onBack={() => setTab('dashboard')} />;
-  if (tab === 'messages') return <Messages onBack={() => setTab('dashboard')} />;
-  if (tab === 'delivery-sheet') return <DeliverySheet onBack={() => setTab('dashboard')} />;
-
-  if (showForm) {
-    return <ShipmentForm shipment={editing} onDone={() => { setShowForm(false); setEditing(null); fetchShipments(); fetchStats(); }}
-      onCancel={() => { setShowForm(false); setEditing(null); }} />;
-  }
+  const tabLabel = useMemo(() => {
+    if (!activeTab) return 'Dashboard';
+    for (const section of navSections) {
+      for (const item of section.items) {
+        if (item.id === activeTab) return item.label;
+      }
+    }
+    return activeTab.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }, [activeTab]);
 
   const statCards = stats ? [
-    { label: 'Total Orders', value: stats.total, gradient: 'from-blue-500 to-blue-600', iconBg: 'bg-blue-500/10', icon: <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg> },
-    { label: "Today's Orders", value: stats.today, gradient: 'from-amber-500 to-orange-500', iconBg: 'bg-amber-500/10', icon: <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg> },
-    { label: 'Delivered', value: stats.delivered, gradient: 'from-emerald-500 to-green-500', iconBg: 'bg-emerald-500/10', icon: <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
-    { label: 'Pending Scan', value: stats.pendingScan || 0, gradient: 'from-slate-400 to-slate-500', iconBg: 'bg-slate-500/10', icon: <svg className="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.008v.008H6.75V6.75zm0 10.5h.008v.008H6.75v-.008zm0-5.25h.008v.008H6.75V12z" /></svg> },
-    { label: 'At Sorting', value: stats.atSorting, gradient: 'from-violet-500 to-purple-500', iconBg: 'bg-violet-500/10', icon: <svg className="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" /></svg> },
-    { label: 'Out for Delivery', value: stats.outForDelivery, gradient: 'from-blue-600 to-indigo-500', iconBg: 'bg-blue-500/10', icon: <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0H21a.75.75 0 00.75-.75V11.25a3 3 0 00-3-3h-1.5l-1.72-4.575A1.5 1.5 0 0014.925 3H9.075a1.5 1.5 0 00-1.425 1.05L5.925 8.25H4.5A3 3 0 001.5 11.25v6.375c0 .621.504 1.125 1.125 1.125h3" /></svg> },
-    { label: 'Failed', value: stats.failed, gradient: 'from-red-500 to-rose-500', iconBg: 'bg-red-500/10', icon: <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg> },
-    { label: 'Total COD', value: `LKR ${(stats.totalCod || 0).toLocaleString()}`, gradient: 'from-cyan-500 to-teal-500', iconBg: 'bg-cyan-500/10', icon: <svg className="w-5 h-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+    { label: 'Total Orders', value: stats.total, iconBg: 'bg-blue-500/10', icon: <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg> },
+    { label: "Today's Orders", value: stats.today, iconBg: 'bg-amber-500/10', icon: <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg> },
+    { label: 'Delivered', value: stats.delivered, iconBg: 'bg-emerald-500/10', icon: <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+    { label: 'Pending Scan', value: stats.pendingScan || 0, iconBg: 'bg-slate-500/10', icon: <svg className="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.008v.008H6.75V6.75zm0 10.5h.008v.008H6.75v-.008zm0-5.25h.008v.008H6.75V12z" /></svg> },
+    { label: 'At Sorting', value: stats.atSorting, iconBg: 'bg-violet-500/10', icon: <svg className="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" /></svg> },
+    { label: 'Out for Delivery', value: stats.outForDelivery, iconBg: 'bg-blue-500/10', icon: <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0H21a.75.75 0 00.75-.75V11.25a3 3 0 00-3-3h-1.5l-1.72-4.575A1.5 1.5 0 0014.925 3H9.075a1.5 1.5 0 00-1.425 1.05L5.925 8.25H4.5A3 3 0 001.5 11.25v6.375c0 .621.504 1.125 1.125 1.125h3" /></svg> },
+    { label: 'Failed', value: stats.failed, iconBg: 'bg-red-500/10', icon: <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg> },
+    { label: 'Total COD', value: `LKR ${(stats.totalCod || 0).toLocaleString()}`, iconBg: 'bg-cyan-500/10', icon: <svg className="w-5 h-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
   ] : [];
 
   return (
@@ -211,9 +206,8 @@ export default function AdminDashboard() {
 
       {/* Sidebar */}
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-[272px] bg-white border-r border-gray-200/80 flex flex-col transition-transform duration-300 ease-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        {/* Brand */}
         <div className="h-[72px] flex items-center gap-3.5 px-6 border-b border-gray-100">
-          <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/20">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016A3.001 3.001 0 0021 9.349" /></svg>
           </div>
           <div>
@@ -222,7 +216,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-5 px-4 space-y-6">
           {navSections.map((section, si) => (
             <div key={si}>
@@ -231,11 +224,11 @@ export default function AdminDashboard() {
                 {section.items.map(item => (
                   <button key={item.id} onClick={() => handleNav(item.id)}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
-                      tab === item.id
-                        ? 'bg-gradient-to-r from-teal-50 to-cyan-50 text-teal-700 shadow-sm ring-1 ring-teal-100'
+                      activeTab === item.id
+                        ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100'
                         : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
                     }`}>
-                    <span className={`flex-shrink-0 ${tab === item.id ? 'text-teal-600' : 'text-gray-400'}`}>{item.icon}</span>
+                    <span className={`flex-shrink-0 ${activeTab === item.id ? 'text-blue-600' : 'text-gray-400'}`}>{item.icon}</span>
                     {item.label}
                   </button>
                 ))}
@@ -244,10 +237,9 @@ export default function AdminDashboard() {
           ))}
         </nav>
 
-        {/* User card */}
         <div className="p-4 border-t border-gray-100">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50/80">
-            <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-md shadow-teal-500/20">
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-blue-500 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-md shadow-blue-500/20">
               {adminName.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
@@ -261,7 +253,7 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* Main */}
+      {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
         <header className="h-[72px] bg-white border-b border-gray-200/80 flex items-center justify-between px-5 sm:px-8 flex-shrink-0">
@@ -270,8 +262,10 @@ export default function AdminDashboard() {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
             </button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 tracking-tight">{greet()}, {adminName} <span className="inline-block animate-[wave_1.5s_ease-in-out]">👋</span></h1>
-              <p className="text-[13px] text-gray-400 mt-0.5 hidden sm:block">{quotes[currentQuote]}</p>
+              <h1 className="text-xl font-bold text-gray-900 tracking-tight">
+                {activeTab === '' ? <>{greet()}, {adminName} <span className="inline-block animate-[wave_1.5s_ease-in-out]">👋</span></> : tabLabel}
+              </h1>
+              <p className="text-[13px] text-gray-400 mt-0.5 hidden sm:block">{activeTab === '' ? quotes[currentQuote] : `Straightway Courier / ${tabLabel}`}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -281,169 +275,188 @@ export default function AdminDashboard() {
             </div>
             <div className="w-px h-8 bg-gray-200 hidden md:block" />
             <button onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-teal-500/25 transition-all duration-200 active:scale-[0.97]">
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 active:scale-[0.97]">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
               <span className="hidden sm:inline">New Shipment</span>
             </button>
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 overflow-y-auto px-5 sm:px-8 py-6 space-y-6">
-          {/* Stat cards */}
-          {stats && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {statCards.map((card, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:shadow-gray-100/80 hover:-translate-y-0.5 transition-all duration-300 group cursor-default">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`w-11 h-11 ${card.iconBg} rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300`}>
-                      {card.icon}
+        {/* Scrollable content */}
+        <main className="flex-1 overflow-y-auto px-5 sm:px-8 py-6">
+          {showForm ? (
+            <ShipmentForm shipment={editing} onDone={() => { setShowForm(false); setEditing(null); if (activeTab === '') { fetchShipments(); fetchStats(); } }}
+              onCancel={() => { setShowForm(false); setEditing(null); }} />
+          ) : activeTab === '' ? (
+            /* ===== DASHBOARD OVERVIEW ===== */
+            <div className="space-y-6">
+              {stats && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {statCards.map((card, i) => (
+                    <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:shadow-gray-100/80 hover:-translate-y-0.5 transition-all duration-300 group cursor-default">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className={`w-11 h-11 ${card.iconBg} rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300`}>
+                          {card.icon}
+                        </div>
+                      </div>
+                      <p className="text-2xl font-extrabold text-gray-900 tracking-tight leading-none">{card.value}</p>
+                      <p className="text-[12px] text-gray-400 font-medium mt-1.5">{card.label}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {stats && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3.5 hover:shadow-md transition-shadow">
+                    <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center">
+                      <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-gray-900 leading-none">{stats.totalClients || 0}</p>
+                      <p className="text-[11px] text-gray-400 font-medium mt-1">Clients</p>
                     </div>
                   </div>
-                  <p className="text-2xl font-extrabold text-gray-900 tracking-tight leading-none">{card.value}</p>
-                  <p className="text-[12px] text-gray-400 font-medium mt-1.5">{card.label}</p>
+                  <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3.5 hover:shadow-md transition-shadow">
+                    <div className="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center">
+                      <svg className="w-5 h-5 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-gray-900 leading-none">{stats.activeRiders || 0}</p>
+                      <p className="text-[11px] text-gray-400 font-medium mt-1">Active Riders</p>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3.5 hover:shadow-md transition-shadow">
+                    <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center">
+                      <svg className="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-gray-900 leading-none">{stats.todayPickups || 0}</p>
+                      <p className="text-[11px] text-gray-400 font-medium mt-1">Today Pickups</p>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3.5 hover:shadow-md transition-shadow">
+                    <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+                      <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0H21a.75.75 0 00.75-.75V11.25a3 3 0 00-3-3h-1.5l-1.72-4.575A1.5 1.5 0 0014.925 3H9.075a1.5 1.5 0 00-1.425 1.05L5.925 8.25H4.5A3 3 0 001.5 11.25v6.375c0 .621.504 1.125 1.125 1.125h3" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-gray-900 leading-none">{stats.todayDeliveries || 0}</p>
+                      <p className="text-[11px] text-gray-400 font-medium mt-1">Today Deliveries</p>
+                    </div>
+                  </div>
                 </div>
-              ))}
+              )}
+
+              {/* Shipments */}
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <h2 className="text-base font-bold text-gray-900">Recent Shipments</h2>
+                    <p className="text-[13px] text-gray-400 mt-0.5">{shipments.length} shipment{shipments.length !== 1 ? 's' : ''} found</p>
+                  </div>
+                  <form onSubmit={(e) => { e.preventDefault(); fetchShipments(); }} className="flex flex-wrap gap-2">
+                    <div className="relative">
+                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+                      <input type="text" placeholder="Search..." value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 w-48 transition-all" />
+                    </div>
+                    <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setTimeout(fetchShipments, 0); }}
+                      className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all">
+                      <option value="">All Status</option>
+                      {['pending_scan','pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','returned_to_sender','rescheduled'].map(st => (
+                        <option key={st} value={st}>{st.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
+                      ))}
+                    </select>
+                    <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" title="From" />
+                    <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" title="To" />
+                    <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">Filter</button>
+                    <button type="button" onClick={() => { setSearch(''); setStatusFilter(''); setDateFrom(''); setDateTo(''); fetchShipments(); }}
+                      className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">Clear</button>
+                  </form>
+                </div>
+                {loading ? (
+                  <div className="p-16 flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm text-gray-400 font-medium">Loading shipments...</p>
+                  </div>
+                ) : shipments.length === 0 ? (
+                  <div className="p-16 text-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.125l2.25 2.25m0 0l2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
+                    </div>
+                    <p className="text-gray-500 font-semibold">No shipments found</p>
+                    <p className="text-sm text-gray-400 mt-1 mb-4">Create your first shipment to get started</p>
+                    <button onClick={() => setShowForm(true)} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">Create Shipment</button>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100">
+                          <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Tracking</th>
+                          <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Sender</th>
+                          <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Receiver</th>
+                          <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Client</th>
+                          <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Route</th>
+                          <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Status</th>
+                          <th className="text-center px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">COD</th>
+                          <th className="text-right px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {shipments.map(s => (
+                          <tr key={s.id} className="hover:bg-gray-50/60 transition-colors group">
+                            <td className="px-6 py-4">
+                              <span className="font-bold text-blue-600 text-[13px] bg-blue-50 px-2.5 py-1 rounded-lg">{s.tracking_number}</span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="text-[13px] font-medium text-gray-900">{s.sender_name}</p>
+                              <p className="text-[12px] text-gray-400 mt-0.5">{s.sender_phone}</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="text-[13px] font-medium text-gray-900">{s.receiver_name}</p>
+                              <p className="text-[12px] text-gray-400 mt-0.5">{s.receiver_phone}</p>
+                            </td>
+                            <td className="px-6 py-4 text-[13px] text-gray-500 font-medium">{s.client_name || <span className="text-gray-300">—</span>}</td>
+                            <td className="px-6 py-4 text-[13px] text-gray-500 max-w-[140px] truncate">{s.origin} → {s.destination}</td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide ${statusColors[s.status] || 'bg-gray-100 text-gray-700'}`}>
+                                {s.status.replace(/_/g, ' ')}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-center text-[13px] font-semibold text-gray-700">{s.cod_amount ? `LKR ${Number(s.cod_amount).toLocaleString()}` : <span className="text-gray-300">—</span>}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                <a href={`/waybill.html?tracking=${s.tracking_number}`} target="_blank" className="px-2.5 py-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg text-[12px] font-medium transition-all">Print</a>
+                                <button onClick={() => setWaybillShipment(s)} className="px-2.5 py-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg text-[12px] font-medium transition-all">Waybill</button>
+                                <button onClick={() => viewTracking(s.id)} className="px-2.5 py-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg text-[12px] font-medium transition-all">Track</button>
+                                <button onClick={() => { setEditing(s); setShowForm(true); }} className="px-2.5 py-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg text-[12px] font-medium transition-all">Edit</button>
+                                <button onClick={() => handleDelete(s.id)} className="px-2.5 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-[12px] font-medium transition-all">Del</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* ===== SUB-TAB CONTENT ===== */
+            <div>
+              {activeTab === 'docket-entry' && <DocketEntry />}
+              {activeTab === 'pickups' && <Pickups />}
+              {activeTab === 'deliveries' && <Deliveries />}
+              {activeTab === 'delivery-sheet' && <DeliverySheet />}
+              {activeTab === 'cod' && <COD />}
+              {activeTab === 'clients' && <Clients />}
+              {activeTab === 'staff' && <StaffManagement />}
+              {activeTab === 'reports' && <Reports />}
+              {activeTab === 'messages' && <Messages />}
             </div>
           )}
-
-          {/* Secondary stats */}
-          {stats && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3.5 hover:shadow-md transition-shadow">
-                <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center">
-                  <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-gray-900 leading-none">{stats.totalClients || 0}</p>
-                  <p className="text-[11px] text-gray-400 font-medium mt-1">Clients</p>
-                </div>
-              </div>
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3.5 hover:shadow-md transition-shadow">
-                <div className="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center">
-                  <svg className="w-5 h-5 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" /></svg>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-gray-900 leading-none">{stats.activeRiders || 0}</p>
-                  <p className="text-[11px] text-gray-400 font-medium mt-1">Active Riders</p>
-                </div>
-              </div>
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3.5 hover:shadow-md transition-shadow">
-                <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center">
-                  <svg className="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-gray-900 leading-none">{stats.todayPickups || 0}</p>
-                  <p className="text-[11px] text-gray-400 font-medium mt-1">Today Pickups</p>
-                </div>
-              </div>
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3.5 hover:shadow-md transition-shadow">
-                <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
-                  <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0H21a.75.75 0 00.75-.75V11.25a3 3 0 00-3-3h-1.5l-1.72-4.575A1.5 1.5 0 0014.925 3H9.075a1.5 1.5 0 00-1.425 1.05L5.925 8.25H4.5A3 3 0 001.5 11.25v6.375c0 .621.504 1.125 1.125 1.125h3" /></svg>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-gray-900 leading-none">{stats.todayDeliveries || 0}</p>
-                  <p className="text-[11px] text-gray-400 font-medium mt-1">Today Deliveries</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Shipments Table */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h2 className="text-base font-bold text-gray-900">Recent Shipments</h2>
-                <p className="text-[13px] text-gray-400 mt-0.5">{shipments.length} shipment{shipments.length !== 1 ? 's' : ''} found</p>
-              </div>
-              <form onSubmit={(e) => { e.preventDefault(); fetchShipments(); }} className="flex flex-wrap gap-2">
-                <div className="relative">
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
-                  <input type="text" placeholder="Search..." value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-400 w-48 transition-all" />
-                </div>
-                <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setTimeout(fetchShipments, 0); }}
-                  className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-all">
-                  <option value="">All Status</option>
-                  {['pending_scan','pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','returned_to_sender','rescheduled'].map(st => (
-                    <option key={st} value={st}>{st.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
-                  ))}
-                </select>
-                <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" title="From" />
-                <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" title="To" />
-                <button type="submit" className="px-4 py-2 bg-teal-500 text-white rounded-xl text-sm font-semibold hover:bg-teal-600 transition-colors">Filter</button>
-                <button type="button" onClick={() => { setSearch(''); setStatusFilter(''); setDateFrom(''); setDateTo(''); fetchShipments(); }}
-                  className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">Clear</button>
-              </form>
-            </div>
-            {loading ? (
-              <div className="p-16 flex flex-col items-center gap-3">
-                <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-gray-400 font-medium">Loading shipments...</p>
-              </div>
-            ) : shipments.length === 0 ? (
-              <div className="p-16 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.125l2.25 2.25m0 0l2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
-                </div>
-                <p className="text-gray-500 font-semibold">No shipments found</p>
-                <p className="text-sm text-gray-400 mt-1 mb-4">Create your first shipment to get started</p>
-                <button onClick={() => setShowForm(true)} className="px-5 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-semibold hover:bg-teal-600 transition-colors">Create Shipment</button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Tracking</th>
-                      <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Sender</th>
-                      <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Receiver</th>
-                      <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Client</th>
-                      <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Route</th>
-                      <th className="text-left px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Status</th>
-                      <th className="text-center px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">COD</th>
-                      <th className="text-right px-6 py-3.5 font-semibold text-[11px] text-gray-400 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {shipments.map(s => (
-                      <tr key={s.id} className="hover:bg-gray-50/60 transition-colors group">
-                        <td className="px-6 py-4">
-                          <span className="font-bold text-teal-600 text-[13px] bg-teal-50 px-2.5 py-1 rounded-lg">{s.tracking_number}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-[13px] font-medium text-gray-900">{s.sender_name}</p>
-                          <p className="text-[12px] text-gray-400 mt-0.5">{s.sender_phone}</p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-[13px] font-medium text-gray-900">{s.receiver_name}</p>
-                          <p className="text-[12px] text-gray-400 mt-0.5">{s.receiver_phone}</p>
-                        </td>
-                        <td className="px-6 py-4 text-[13px] text-gray-500 font-medium">{s.client_name || <span className="text-gray-300">—</span>}</td>
-                        <td className="px-6 py-4 text-[13px] text-gray-500 max-w-[140px] truncate">{s.origin} → {s.destination}</td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide ${statusColors[s.status] || 'bg-gray-100 text-gray-700'}`}>
-                            {s.status.replace(/_/g, ' ')}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center text-[13px] font-semibold text-gray-700">{s.cod_amount ? `LKR ${Number(s.cod_amount).toLocaleString()}` : <span className="text-gray-300">—</span>}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <a href={`/waybill.html?tracking=${s.tracking_number}`} target="_blank" className="px-2.5 py-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg text-[12px] font-medium transition-all">Print</a>
-                            <button onClick={() => setWaybillShipment(s)} className="px-2.5 py-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg text-[12px] font-medium transition-all">Waybill</button>
-                            <button onClick={() => viewTracking(s.id)} className="px-2.5 py-1.5 text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg text-[12px] font-medium transition-all">Track</button>
-                            <button onClick={() => { setEditing(s); setShowForm(true); }} className="px-2.5 py-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg text-[12px] font-medium transition-all">Edit</button>
-                            <button onClick={() => handleDelete(s.id)} className="px-2.5 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-[12px] font-medium transition-all">Del</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
         </main>
       </div>
 
@@ -470,12 +483,12 @@ export default function AdminDashboard() {
             <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
               {trackLoading ? (
                 <div className="py-12 flex flex-col items-center gap-3">
-                  <div className="w-7 h-7 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-7 h-7 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                   <p className="text-sm text-gray-400 font-medium">Loading tracking...</p>
                 </div>
               ) : (
                 <div className="relative">
-                  <div className="absolute left-[15px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-teal-400 via-gray-200 to-gray-100 rounded-full" />
+                  <div className="absolute left-[15px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-blue-400 via-gray-200 to-gray-100 rounded-full" />
                   {(trackData.events || []).map((event, i) => {
                     const cfg = {
                       pending_scan: { color: 'bg-slate-400', ring: 'ring-slate-100', label: 'Pending Scan' },

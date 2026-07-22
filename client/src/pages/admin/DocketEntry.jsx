@@ -37,7 +37,7 @@ const POSTAL_CODES = {
   '90000':'Badulla','91000':'Monaragala',
 };
 
-export default function DocketEntry({ onBack }) {
+export default function DocketEntry() {
   const [items, setItems] = useState([]);
   const [riders, setRiders] = useState([]);
   const [clients, setClients] = useState([]);
@@ -450,14 +450,13 @@ export default function DocketEntry({ onBack }) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
         <div>
-          <button onClick={onBack} className="text-brand-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</button>
-          <h2 className="text-xl font-bold text-gray-900">Docket Entry</h2>
-          <p className="text-xs text-gray-500 mt-1">Create, record & assign shipments at sorting center</p>
+          <h2 className="text-lg font-bold text-gray-900">Docket Entry</h2>
+          <p className="text-[13px] text-gray-400 mt-0.5">Create, record & assign shipments at sorting center</p>
         </div>
-        <button onClick={openNew} className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm font-semibold hover:bg-brand-600">
+        <button onClick={openNew} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">
           + New Docket
         </button>
       </div>
@@ -498,8 +497,8 @@ export default function DocketEntry({ onBack }) {
             const p = pickups.find(p => String(p.id) === String(selectedPickupId));
             return p ? (
               <div className="mb-4 text-sm text-gray-500">
-                Pickup: <span className="font-semibold text-brand-600">{p.tracking_number}</span>
-                {' | '}Parcels: <span className="font-semibold text-brand-600">{p.num_items}</span>
+                Pickup: <span className="font-semibold text-blue-700">{p.tracking_number}</span>
+                {' | '}Parcels: <span className="font-semibold text-blue-700">{p.num_items}</span>
                 {p.remaining_items != null && <> ({p.remaining_items} remaining)</>}
                 {' | '}Docket #: <span className="font-semibold text-amber-600">{form.tracking_number}</span>
               </div>
@@ -586,7 +585,7 @@ export default function DocketEntry({ onBack }) {
 
           <div className="flex gap-2">
             <button type="submit" disabled={saving}
-              className="px-5 py-2 bg-brand-500 text-white rounded-lg text-sm font-semibold hover:bg-brand-600 disabled:opacity-50">
+              className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
               {saving ? 'Saving...' : editingId ? 'Update Docket' : 'Create Docket'}
             </button>
             <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setForm({...defaultForm, docket_date: localDT()}); setPickups([]); setSelectedPickupId(null); }}
@@ -614,7 +613,7 @@ export default function DocketEntry({ onBack }) {
               {riders.map(r => <option key={r.id} value={r.id}>{r.name} ({r.phone})</option>)}
             </select>
             <div className="flex gap-2">
-              <button type="submit" className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">Assign</button>
+              <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Assign</button>
               <button type="button" onClick={() => setAssignForm({ id: null, rider_id: '', sorting_area: '' })} className="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancel</button>
             </div>
           </div>

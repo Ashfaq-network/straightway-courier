@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 const API = '/api/admin';
 
-export default function StaffManagement({ onBack }) {
+export default function StaffManagement() {
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -54,14 +54,11 @@ export default function StaffManagement({ onBack }) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <button onClick={onBack} className="text-brand-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</button>
-          <h2 className="text-xl font-bold text-gray-900">Delivery Staff Management</h2>
-        </div>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-gray-900">Delivery Staff Management</h2>
         <button onClick={() => { setShowForm(true); setEditStaff(null); setForm({ name: '', phone: '', email: '', username: '', password: '' }); }}
-          className="px-4 py-2 bg-brand-500 text-white font-semibold rounded-lg hover:bg-brand-600 text-sm transition-colors">
+          className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 text-sm transition-colors">
           + Add Staff
         </button>
       </div>
@@ -73,33 +70,33 @@ export default function StaffManagement({ onBack }) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
               <input type="text" required value={form.name} onChange={(e) => setForm({...form, name: e.target.value})}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
               <input type="text" required value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input type="email" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
               <input type="text" required value={form.username} onChange={(e) => setForm({...form, username: e.target.value})}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" />
             </div>
             {!editStaff && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
                 <input type="password" required value={form.password} onChange={(e) => setForm({...form, password: e.target.value})}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" />
               </div>
             )}
           </div>
           <div className="flex gap-2">
-            <button type="submit" className="px-4 py-2 bg-brand-500 text-white font-semibold rounded-lg hover:bg-brand-600 text-sm">
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 text-sm">
               {editStaff ? 'Update' : 'Create'}
             </button>
             <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">

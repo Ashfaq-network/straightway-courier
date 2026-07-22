@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 const API = '/api/admin';
 
-export default function Clients({ onBack }) {
+export default function Clients() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -46,19 +46,16 @@ export default function Clients({ onBack }) {
   const resetForm = () => setForm({ client_type: 'individual', company_name: '', contact_person: '', phone: '', email: '', address: '', billing_address: '' });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <button onClick={onBack} className="text-brand-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</button>
-          <h2 className="text-xl font-bold text-gray-900">Client Management</h2>
-        </div>
-        <button onClick={() => { setShowForm(true); setEditClient(null); resetForm(); }} className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm">+ Add Client</button>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-gray-900">Client Management</h2>
+        <button onClick={() => { setShowForm(true); setEditClient(null); resetForm(); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">+ Add Client</button>
       </div>
 
       <div className="flex gap-2 mb-4">
         <input type="text" placeholder="Search clients..." value={search} onChange={(e) => setSearch(e.target.value)}
           className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm" />
-        <button onClick={fetchClients} className="px-4 py-2.5 bg-brand-500 text-white rounded-lg text-sm">Search</button>
+        <button onClick={fetchClients} className="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm">Search</button>
       </div>
 
       {showForm && (
@@ -98,7 +95,7 @@ export default function Clients({ onBack }) {
             </div>
           </div>
           <div className="flex gap-2 mt-4">
-            <button type="submit" className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">{editClient ? 'Update' : 'Create'}</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">{editClient ? 'Update' : 'Create'}</button>
             <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancel</button>
           </div>
         </form>
@@ -112,7 +109,7 @@ export default function Clients({ onBack }) {
               <input type="text" placeholder="Username" value={loginForm.username} onChange={(e) => setLoginForm({...loginForm, username: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
               <input type="password" placeholder="Password" value={loginForm.password} onChange={(e) => setLoginForm({...loginForm, password: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
               <div className="flex gap-2">
-                <button onClick={() => createLogin(showLogin)} className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">Create</button>
+                <button onClick={() => createLogin(showLogin)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Create</button>
                 <button onClick={() => setShowLogin(null)} className="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancel</button>
               </div>
             </div>

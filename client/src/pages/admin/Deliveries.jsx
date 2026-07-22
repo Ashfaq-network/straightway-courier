@@ -9,7 +9,7 @@ const statusColors = {
   rescheduled: 'bg-cyan-100 text-cyan-800',
 };
 
-export default function Deliveries({ onBack }) {
+export default function Deliveries() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [completeForm, setCompleteForm] = useState(null);
@@ -39,9 +39,11 @@ export default function Deliveries({ onBack }) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-      <button onClick={onBack} className="text-brand-500 hover:underline text-sm mb-4 inline-block">&larr; Back to Dashboard</button>
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Delivery Management</h2>
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">Delivery Management</h2>
+        <p className="text-sm text-gray-500 mt-1">Track and manage all deliveries across the system.</p>
+      </div>
 
       <div className="flex gap-2 mb-4">
         <select value={filter} onChange={(e) => setFilter(e.target.value)} className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm">

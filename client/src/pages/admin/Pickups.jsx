@@ -15,7 +15,7 @@ const defaultPickupForm = {
   special_instructions: '',
 };
 
-export default function Pickups({ onBack }) {
+export default function Pickups() {
   const [pickups, setPickups] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [clients, setClients] = useState([]);
@@ -208,13 +208,10 @@ export default function Pickups({ onBack }) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <button onClick={onBack} className="text-brand-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</button>
-          <h2 className="text-xl font-bold text-gray-900">Pickup Management</h2>
-        </div>
-        <button onClick={openNewPickup} className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm font-semibold hover:bg-brand-600">
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-gray-900">Pickups</h2>
+        <button onClick={openNewPickup} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">
           + New Pickup
         </button>
       </div>
@@ -226,7 +223,7 @@ export default function Pickups({ onBack }) {
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Tracking Number</label>
               <input type="text" value={pickupForm.tracking_number} onChange={(e) => setPickupForm({...pickupForm, tracking_number: e.target.value})}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-bold text-brand-600 bg-white" />
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-bold text-blue-700 bg-white" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Client</label>
@@ -281,7 +278,7 @@ export default function Pickups({ onBack }) {
           </div>
           <div className="flex gap-2">
             <button type="submit" disabled={creating}
-              className="px-5 py-2 bg-brand-500 text-white rounded-lg text-sm font-semibold hover:bg-brand-600 disabled:opacity-50">
+              className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
               {creating ? 'Saving...' : editingId ? 'Update Pickup' : 'Create Pickup'}
             </button>
             <button type="button" onClick={cancelForm}
@@ -306,7 +303,7 @@ export default function Pickups({ onBack }) {
             </select>
             <input type="datetime-local" value={assignForm.scheduled_at} onChange={(e) => setAssignForm({...assignForm, scheduled_at: e.target.value})} className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
             <div className="flex gap-2">
-              <button type="submit" className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">Assign</button>
+              <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Assign</button>
               <button type="button" onClick={() => setAssignForm({ id: null, driver_id: '', scheduled_at: '' })} className="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancel</button>
             </div>
           </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 const API = '/api/admin';
 
-export default function Messages({ onBack }) {
+export default function Messages() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,13 +24,8 @@ export default function Messages({ onBack }) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <button onClick={onBack} className="text-brand-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</button>
-          <h2 className="text-xl font-bold text-gray-900">Contact Messages</h2>
-        </div>
-      </div>
+    <div className="space-y-5">
+      <h2 className="text-xl font-bold text-gray-900">Contact Messages</h2>
 
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         {loading ? <p className="p-4 text-gray-500">Loading...</p> : messages.length === 0 ? (

@@ -59,7 +59,7 @@ export default function AdminLogin() {
       }}>
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-brand-400/10 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-cyan-400/10 rounded-full blur-3xl" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/[0.02] rounded-full blur-2xl" />
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -77,10 +77,10 @@ export default function AdminLogin() {
 
         {/* Login card */}
         <div className="relative">
-          <div className="absolute -inset-1 bg-gradient-to-r from-brand-400 via-cyan-400 to-brand-500 rounded-2xl blur opacity-30" />
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-600 rounded-2xl blur opacity-30" />
           <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20">
             <div className="text-center mb-6">
-              <div className="w-14 h-14 bg-gradient-to-br from-brand-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-brand-500/30">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-600/30">
                 <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
@@ -107,7 +107,7 @@ export default function AdminLogin() {
                   </svg>
                   <input type="text" placeholder="Enter your username" required value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-gray-50/50 transition-all" />
+                    className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-gray-50/50 transition-all" />
                 </div>
               </div>
               <div>
@@ -118,11 +118,11 @@ export default function AdminLogin() {
                   </svg>
                   <input type="password" placeholder="Enter your password" required value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-gray-50/50 transition-all" />
+                    className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-gray-50/50 transition-all" />
                 </div>
               </div>
               <button type="submit" disabled={loading}
-                className="w-full py-3 text-sm font-bold text-white rounded-xl transition-all duration-200 disabled:opacity-50 shadow-lg shadow-brand-500/30"
+                className="w-full py-3 text-sm font-bold text-white rounded-xl transition-all duration-200 disabled:opacity-50 shadow-lg shadow-blue-600/30"
                 style={{
                   background: 'linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)',
                 }}>

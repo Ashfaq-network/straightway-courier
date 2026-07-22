@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 const API = '/api/admin';
 
-export default function Reports({ onBack }) {
+export default function Reports() {
   const [daily, setDaily] = useState(null);
   const [monthly, setMonthly] = useState([]);
   const [riderPerf, setRiderPerf] = useState([]);
@@ -65,14 +65,13 @@ export default function Reports({ onBack }) {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-      <button onClick={onBack} className="text-brand-500 hover:underline text-sm mb-4 inline-block">&larr; Back to Dashboard</button>
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Reports</h2>
+    <div className="space-y-5">
+      <h2 className="text-xl font-bold text-gray-900">Reports</h2>
 
       <div className="flex flex-wrap gap-1 mb-6 border-b border-gray-200">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`px-4 py-2.5 text-sm font-medium rounded-t-lg ${tab === t.id ? 'bg-brand-500 text-white' : 'text-gray-600 hover:text-gray-900'}`}>
+            className={`px-4 py-2.5 text-sm font-medium rounded-t-lg ${tab === t.id ? 'bg-blue-600 text-white' : 'text-gray-600 hover:text-gray-900'}`}>
             {t.label}
           </button>
         ))}

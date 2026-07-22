@@ -14,7 +14,7 @@ const statusColors = {
   rescheduled: 'bg-cyan-100 text-cyan-800',
 };
 
-export default function DeliverySheet({ onBack }) {
+export default function DeliverySheet() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [riders, setRiders] = useState([]);
@@ -146,10 +146,10 @@ export default function DeliverySheet({ onBack }) {
   filtered.forEach(s => { const r = s.rider_name || 'Unassigned'; if (!grouped[r]) grouped[r] = []; grouped[r].push(s); });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 no-print">
-        <button onClick={onBack} className="text-brand-500 hover:underline text-sm inline-block">&larr; Back to Dashboard</button>
+    <div className="space-y-5">
+      <div className="mb-6 no-print">
         <h2 className="text-xl font-bold text-gray-900">Delivery Sheet</h2>
+        <p className="text-sm text-gray-500">Track and manage daily deliveries by rider</p>
       </div>
 
       <div className="no-print mb-4 flex flex-wrap gap-2">
@@ -166,12 +166,12 @@ export default function DeliverySheet({ onBack }) {
           ))}
         </select>
         <button onClick={() => setScanMode(!scanMode)}
-          className={`px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 ${scanMode ? 'bg-red-500 text-white' : 'bg-brand-500 text-white hover:bg-brand-600'}`}>
+          className={`px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 ${scanMode ? 'bg-red-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
           {scanMode ? 'Stop Scanner' : 'Scan Parcel'}
         </button>
         <button onClick={() => window.print()}
-          className="px-5 py-2.5 bg-brand-500 text-white font-semibold rounded-lg hover:bg-brand-600 text-sm flex items-center gap-2">
+          className="px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 text-sm flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
           Print
         </button>
