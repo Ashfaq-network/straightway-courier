@@ -23,9 +23,13 @@ export default function DeliverySheet() {
   const [scanMode, setScanMode] = useState(false);
   const [scanResult, setScanResult] = useState('');
   const [scanStatus, setScanStatus] = useState('');
+  const [physicalScanValue, setPhysicalScanValue] = useState('');
+  const [physicalScanStatus, setPhysicalScanStatus] = useState('');
   const [editItem, setEditItem] = useState(null);
   const [editForm, setEditForm] = useState({});
   const scannerRef = useRef(null);
+  const physicalScanRef = useRef(null);
+  const physicalScanTimer = useRef(null);
 
   const getToken = () => sessionStorage.getItem('swc_token');
 
@@ -36,6 +40,15 @@ export default function DeliverySheet() {
     startScanner();
     return () => stopScanner();
   }, [scanMode]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (physicalScanRef.current && document.activeElement !== physicalScanRef.current) {
+        physicalScanRef.current.focus();
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchRiders = async () => {
     try {
@@ -74,6 +87,52 @@ export default function DeliverySheet() {
       scannerRef.current.stop().catch(() => {});
       scannerRef.current.clear().catch(() => {});
       scannerRef.current = null;
+    }
+  };
+
+  const processScan = useCallback(async (trackingNumber) => {
+    const tn = trackingNumber.trim();
+    if (!tn) return;
+    setPhysicalScanStatus(`Scanning ${tn}...`);
+    try {
+      const res = await fetch(`${API}/scan/${encodeURIComponent(tn)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ receiver_name: 'Scanned Delivery', remarks: 'Scanned via barcode scanner', rider_id: riderFilter || null })
+      });
+      if (res.ok) {
+        setPhysicalScanStatus(`✓ ${tn} — Sorted & assigned!`);
+        fetchSheet();
+      } else {
+        const d = await res.json();
+        setPhysicalScanStatus(`✗ ${tn} — ${d.error}`);
+      }
+    } catch {
+      setPhysicalScanStatus(`✗ ${tn} — Network error`);
+    }
+    setTimeout(() => setPhysicalScanStatus(''), 4000);
+  }, [riderFilter]);
+
+  const handlePhysicalScanInput = (e) => {
+    const value = e.target.value;
+    setPhysicalScanValue(value);
+    if (physicalScanTimer.current) clearTimeout(physicalScanTimer.current);
+    physicalScanTimer.current = setTimeout(() => {
+      if (value.trim()) {
+        processScan(value);
+        setPhysicalScanValue('');
+      }
+    }, 150);
+  };
+
+  const handlePhysicalScanKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (physicalScanTimer.current) clearTimeout(physicalScanTimer.current);
+      if (physicalScanValue.trim()) {
+        processScan(physicalScanValue);
+        setPhysicalScanValue('');
+      }
     }
   };
 
@@ -160,13 +219,52 @@ export default function DeliverySheet() {
         </div>
       </div>
 
+      {/* Physical Barcode Scanner */}
+      <div className="no-print bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-gray-900">Barcode Scanner</h3>
+            <p className="text-[12px] text-gray-400">Scan a parcel barcode to sort and assign to rider</p>
+          </div>
+          <div className="ml-auto flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[11px] font-semibold text-emerald-600">Ready</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2">
+              <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+            </div>
+            <input
+              ref={physicalScanRef}
+              type="text"
+              value={physicalScanValue}
+              onChange={handlePhysicalScanInput}
+              onKeyDown={handlePhysicalScanKeyDown}
+              placeholder="Scan barcode here — auto-detects tracking number..."
+              autoFocus
+              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-400 transition-all"
+            />
+          </div>
+          <select value={riderFilter} onChange={(e) => setRiderFilter(e.target.value)}
+            className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all">
+            <option value="">Assign to rider...</option>
+            {riders.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+        </div>
+        {physicalScanStatus && (
+          <p className={`text-sm font-semibold mt-2 ${physicalScanStatus.startsWith('✓') ? 'text-emerald-600' : physicalScanStatus.startsWith('✗') ? 'text-red-500' : 'text-amber-600'}`}>
+            {physicalScanStatus}
+          </p>
+        )}
+      </div>
+
       {/* Toolbar */}
       <div className="no-print flex flex-wrap items-center gap-2.5">
-        <select value={riderFilter} onChange={(e) => setRiderFilter(e.target.value)}
-          className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all">
-          <option value="">All Riders</option>
-          {riders.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-        </select>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
           className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all">
           <option value="">All Statuses</option>
@@ -176,8 +274,8 @@ export default function DeliverySheet() {
         </select>
         <button onClick={() => setScanMode(!scanMode)}
           className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all active:scale-[0.97] ${scanMode ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:shadow-lg hover:shadow-blue-500/25'}`}>
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
-          {scanMode ? 'Stop Scanner' : 'Scan Parcel'}
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          {scanMode ? 'Stop Camera' : 'Camera Scan'}
         </button>
         <button onClick={() => window.print()}
           className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-2">
@@ -186,17 +284,17 @@ export default function DeliverySheet() {
         </button>
       </div>
 
-      {/* Scanner */}
+      {/* Camera Scanner */}
       {scanMode && (
         <div className="no-print bg-gray-900 rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <p className="text-white text-sm font-semibold">Scanner Active</p>
+            <p className="text-white text-sm font-semibold">Camera Scanner Active</p>
           </div>
           <div id="scanner-container" className="rounded-xl overflow-hidden mb-4" style={{ maxWidth: 400 }} />
           {scanResult && <p className="text-white text-sm font-mono">Last scan: {scanResult}</p>}
           {scanStatus && <p className={`text-sm font-semibold mt-1 ${scanStatus.startsWith('✓') ? 'text-green-400' : scanStatus.startsWith('✗') ? 'text-red-400' : 'text-yellow-400'}`}>{scanStatus}</p>}
-          <p className="text-gray-500 text-xs mt-2">Point camera at parcel barcode to mark as delivered</p>
+          <p className="text-gray-500 text-xs mt-2">Point camera at parcel barcode to scan</p>
         </div>
       )}
 
