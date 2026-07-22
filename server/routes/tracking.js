@@ -5,9 +5,10 @@ const router = Router();
 
 router.get('/:tracking_number', async (req, res) => {
   try {
+    const tn = req.params.tracking_number;
     const result = await query(`SELECT s.*, c.company_name AS client_name
-      FROM shipments s LEFT JOIN clients c ON s.client_id = c.id WHERE s.tracking_number = $1`,
-      [req.params.tracking_number]);
+      FROM shipments s LEFT JOIN clients c ON s.client_id = c.id
+      WHERE s.tracking_number = $1 OR s.sw_tracking_number = $1`, [tn]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
 
     const shipment = result.rows[0];

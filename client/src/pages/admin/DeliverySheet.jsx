@@ -4,6 +4,7 @@ import JsBarcode from 'jsbarcode';
 const API = '/api/admin';
 
 const statusColors = {
+  at_sorting_center: 'bg-violet-100 text-violet-800',
   sorted: 'bg-indigo-100 text-indigo-800',
   out_for_delivery: 'bg-blue-100 text-blue-800',
   customer_contacted: 'bg-teal-100 text-teal-800',
@@ -93,7 +94,7 @@ export default function DeliverySheet({ onBack }) {
       const res = await fetch(`${API}/scan/${encodeURIComponent(decodedText)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-        body: JSON.stringify({ receiver_name: 'Scanned Delivery', remarks: 'Delivered via barcode scan' })
+        body: JSON.stringify({ receiver_name: 'Scanned Delivery', remarks: 'Delivered via barcode scan', rider_id: riderFilter || null })
       });
       if (res.ok) {
         setScanStatus(`✓ ${decodedText} — Delivered!`);
@@ -134,6 +135,17 @@ export default function DeliverySheet({ onBack }) {
     } catch (err) { alert(err.message); }
   };
 
+  const handleAssignRider = async (shipmentId, newRiderId) => {
+    try {
+      const res = await fetch(`${API}/delivery-sheet/${shipmentId}/assign`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ rider_id: newRiderId || null })
+      });
+      if (res.ok) fetchSheet();
+    } catch (err) { console.error(err); }
+  };
+
   const filtered = items.filter(s => {
     if (riderFilter && String(s.delivery_rider_id) !== String(riderFilter)) return false;
     if (statusFilter && s.status !== statusFilter) return false;
@@ -159,7 +171,7 @@ export default function DeliverySheet({ onBack }) {
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
           className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm">
           <option value="">All Statuses</option>
-          {['sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','returned_to_sender','rescheduled'].map(st => (
+          {['at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','returned_to_sender','rescheduled'].map(st => (
             <option key={st} value={st}>{st.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
           ))}
         </select>
@@ -242,7 +254,7 @@ export default function DeliverySheet({ onBack }) {
                               <td className="px-3 py-2"><input value={editForm.special_instructions} onChange={e => setEditForm({...editForm, special_instructions: e.target.value})} className="px-2 py-1 border rounded text-xs w-full" /></td>
                               <td className="px-3 py-2">
                                 <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})} className="px-2 py-1 border rounded text-xs">
-                                  {['sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','rescheduled'].map(st => (
+                                  {['at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','rescheduled'].map(st => (
                                     <option key={st} value={st}>{st.replace(/_/g, ' ')}</option>
                                   ))}
                                 </select>
@@ -269,14 +281,21 @@ export default function DeliverySheet({ onBack }) {
                                 </span>
                               </td>
                               <td className="px-3 py-2 print:hidden">
-                                <div className="flex gap-1">
+                                <div className="flex gap-1 items-center flex-wrap">
+                                  {s.status !== 'delivered' && (
+                                    <select value={s.delivery_rider_id || ''} onChange={(e) => handleAssignRider(s.id, e.target.value || null)}
+                                      className="px-1.5 py-1 border border-gray-200 rounded text-xs bg-white max-w-[100px]">
+                                      <option value="">No Rider</option>
+                                      {riders.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                    </select>
+                                  )}
                                   <button onClick={() => handleEdit(s)} className="text-blue-500 hover:underline text-xs">Edit</button>
                                   {s.status !== 'delivered' && (
                                     <button onClick={async () => {
                                       if (!confirm(`Mark ${s.tracking_number} as delivered?`)) return;
                                       await fetch(`${API}/scan/${s.tracking_number}`, {
                                         method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-                                        body: JSON.stringify({ receiver_name: s.receiver_name, remarks: 'Marked delivered manually' })
+                                        body: JSON.stringify({ receiver_name: s.receiver_name, remarks: 'Marked delivered manually', rider_id: s.delivery_rider_id || riderFilter || null })
                                       });
                                       fetchSheet();
                                     }} className="text-green-500 hover:underline text-xs">Deliver</button>

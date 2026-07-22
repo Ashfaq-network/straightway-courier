@@ -560,12 +560,15 @@ router.put('/deliveries/:id/complete', async (req, res) => {
 // ─── Scan to Deliver ─────────────────────────────────────────────
 router.put('/scan/:tracking_number', async (req, res) => {
   try {
-    const { receiver_name, remarks } = req.body;
+    const { receiver_name, remarks, rider_id } = req.body;
+    const tn = req.params.tracking_number;
     const result = await query(
-      `UPDATE shipments SET status='delivered', delivered_by=$1, delivery_remarks=$2, delivered_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP
-       WHERE tracking_number=$3 AND status IN ('sorted','out_for_delivery','customer_contacted')
+      `UPDATE shipments SET status='delivered', delivered_by=$1, delivery_remarks=$2, delivered_at=CURRENT_TIMESTAMP,
+       delivery_rider_id = COALESCE($4, delivery_rider_id), updated_at=CURRENT_TIMESTAMP
+       WHERE (tracking_number=$3 OR sw_tracking_number=$3)
+       AND status IN ('at_sorting_center','sorted','out_for_delivery','customer_contacted')
        RETURNING *`,
-      [receiver_name || null, remarks || null, req.params.tracking_number]);
+      [receiver_name || null, remarks || null, tn, rider_id || null]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found or already delivered' });
     await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description, staff_name)
       VALUES ($1, 'delivered', 'Delivered', 'Delivered via scan', $2)`,
@@ -577,6 +580,24 @@ router.put('/scan/:tracking_number', async (req, res) => {
 });
 
 // ─── Delivery Sheet by Rider ─────────────────────────────────────
+// ─── Delivery Sheet Assignment ────────────────────────────────────
+router.put('/delivery-sheet/:id/assign', async (req, res) => {
+  try {
+    const { rider_id } = req.body;
+    const result = await query(
+      `UPDATE shipments SET delivery_rider_id=$1, status='sorted', updated_at=CURRENT_TIMESTAMP
+       WHERE id=$2 RETURNING *`,
+      [rider_id || null, req.params.id]);
+    if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
+    await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description)
+      VALUES ($1, 'sorted', 'Sorted', $2)`,
+      [req.params.id, rider_id ? `Assigned to rider` : 'Unassigned from rider']);
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/delivery-sheet', async (req, res) => {
   try {
     const { rider_id } = req.query;
@@ -585,7 +606,7 @@ router.get('/delivery-sheet', async (req, res) => {
       FROM shipments s
       LEFT JOIN delivery_staff d ON s.delivery_rider_id = d.id
       LEFT JOIN clients c ON s.client_id = c.id
-      WHERE s.status IN ('sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','rescheduled')`;
+      WHERE s.status IN ('at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','rescheduled')`;
     const params = [];
     if (rider_id) { sql += ` AND s.delivery_rider_id = $1`; params.push(rider_id); }
     sql += ' ORDER BY rider_name, s.created_at DESC';
