@@ -101,6 +101,7 @@ function buildEmailHtml({ receiverName, senderName, trackingNumber, heading, bod
 
 export function sendRegistrationEmail(client) {
   const adminEmail = process.env.ADMIN_EMAIL || 'straightwaycouriers@gmail.com';
+  const isBusiness = client.client_type === 'business';
 
   const html = `
     <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #f9fafb; border-radius: 16px;">
@@ -108,17 +109,17 @@ export function sendRegistrationEmail(client) {
         <h1 style="color: #ffffff; margin: 0; font-size: 20px; letter-spacing: 1px;">STRAIGHTWAY COURIERS</h1>
       </div>
 
-      <h2 style="color: #111827; margin: 0 0 8px;">New Client Registration</h2>
-      <p style="color: #6b7280; margin: 0 0 20px; font-size: 14px;">A new customer has registered on the portal.</p>
+      <h2 style="color: #111827; margin: 0 0 8px;">New ${isBusiness ? 'Business' : 'Individual'} Client Registration</h2>
+      <p style="color: #6b7280; margin: 0 0 20px; font-size: 14px;">A new ${isBusiness ? 'business customer' : 'individual customer'} has registered on the portal.</p>
 
       <div style="background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; margin-bottom: 20px;">
         <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
-          <tr><td style="padding: 6px 0; color: #6b7280; width: 140px;">Company Name</td><td style="padding: 6px 0; color: #111827; font-weight: 600;">${escapeHtml(client.company_name || 'N/A')}</td></tr>
-          <tr><td style="padding: 6px 0; color: #6b7280;">Contact Person</td><td style="padding: 6px 0; color: #111827; font-weight: 600;">${escapeHtml(client.contact_person)}</td></tr>
+          ${isBusiness ? `<tr><td style="padding: 6px 0; color: #6b7280; width: 160px;">Company Name</td><td style="padding: 6px 0; color: #111827; font-weight: 600;">${escapeHtml(client.company_name || 'N/A')}</td></tr>` : ''}
+          <tr><td style="padding: 6px 0; color: #6b7280; width: 160px;">${isBusiness ? 'Contact Person' : 'Full Name'}</td><td style="padding: 6px 0; color: #111827; font-weight: 600;">${escapeHtml(client.contact_person)}</td></tr>
           <tr><td style="padding: 6px 0; color: #6b7280;">Phone</td><td style="padding: 6px 0; color: #111827; font-weight: 600;">${escapeHtml(client.phone)}</td></tr>
           <tr><td style="padding: 6px 0; color: #6b7280;">Email</td><td style="padding: 6px 0; color: #111827; font-weight: 600;">${escapeHtml(client.email || 'N/A')}</td></tr>
           <tr><td style="padding: 6px 0; color: #6b7280;">NIC Number</td><td style="padding: 6px 0; color: #111827; font-weight: 600;">${escapeHtml(client.nic_number || 'N/A')}</td></tr>
-          <tr><td style="padding: 6px 0; color: #6b7280;">Business Reg #</td><td style="padding: 6px 0; color: #111827; font-weight: 600;">${escapeHtml(client.business_reg_number || 'N/A')}</td></tr>
+          ${isBusiness ? `<tr><td style="padding: 6px 0; color: #6b7280;">Business Reg #</td><td style="padding: 6px 0; color: #111827; font-weight: 600;">${escapeHtml(client.business_reg_number || 'N/A')}</td></tr>` : ''}
           <tr><td style="padding: 6px 0; color: #6b7280;">Address</td><td style="padding: 6px 0; color: #111827; font-weight: 600;">${escapeHtml(client.address || 'N/A')}</td></tr>
           <tr><td colspan="2" style="padding: 12px 0 6px;"><hr style="border: none; border-top: 1px solid #e5e7eb;" /></td></tr>
           <tr><td style="padding: 6px 0; color: #6b7280;">Bank Name</td><td style="padding: 6px 0; color: #111827; font-weight: 600;">${escapeHtml(client.bank_name || 'N/A')}</td></tr>
@@ -136,7 +137,7 @@ export function sendRegistrationEmail(client) {
   return transporter.sendMail({
     from: process.env.SMTP_FROM || '"Straightway Couriers" <straightwaycouriers@gmail.com>',
     to: adminEmail,
-    subject: `New Client Registered — ${client.company_name || client.contact_person}`,
+    subject: `New ${isBusiness ? 'Business' : 'Individual'} Client Registered — ${client.company_name || client.contact_person}`,
     html,
   }).catch(err => {
     console.error('Registration email failed:', err.message);

@@ -80,32 +80,57 @@ export default function Register() {
           </motion.div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Business Details */}
+            {/* Client Type Selector */}
+            <motion.div variants={fadeUp} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 bg-teal-100 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                </div>
+                <h2 className="font-semibold text-gray-900">I am registering as</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button type="button" onClick={() => setForm(prev => ({ ...prev, client_type: 'business', company_name: '', business_reg_number: '' }))}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${form.client_type === 'business' ? 'border-teal-500 bg-teal-50 ring-1 ring-teal-200' : 'border-gray-200 hover:border-gray-300'}`}>
+                  <div className="text-lg mb-1">🏢</div>
+                  <div className="text-sm font-semibold text-gray-900">Business</div>
+                  <div className="text-xs text-gray-400 mt-0.5">Register your company</div>
+                </button>
+                <button type="button" onClick={() => setForm(prev => ({ ...prev, client_type: 'individual', company_name: '', business_reg_number: '' }))}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${form.client_type === 'individual' ? 'border-teal-500 bg-teal-50 ring-1 ring-teal-200' : 'border-gray-200 hover:border-gray-300'}`}>
+                  <div className="text-lg mb-1">👤</div>
+                  <div className="text-sm font-semibold text-gray-900">Individual</div>
+                  <div className="text-xs text-gray-400 mt-0.5">Personal account</div>
+                </button>
+              </div>
+            </motion.div>
+
+            {/* Personal / Business Details */}
             <motion.div variants={fadeUp} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-9 h-9 bg-teal-100 rounded-xl flex items-center justify-center">
-                  <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" /></svg>
+                  {form.client_type === 'business' ? (
+                    <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" /></svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                  )}
                 </div>
-                <h2 className="font-semibold text-gray-900">Business Details</h2>
+                <h2 className="font-semibold text-gray-900">{form.client_type === 'business' ? 'Business Details' : 'Personal Details'}</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Client Type *</label>
-                  <select value={form.client_type} onChange={update('client_type')} className={inputClass}>
-                    <option value="business">Business</option>
-                    <option value="individual">Individual</option>
-                  </select>
-                </div>
-                <Field label="Company Name" name="company_name" value={form.company_name} onChange={update('company_name')} placeholder="Your company name" />
-                <Field label="Contact Person" name="contact_person" value={form.contact_person} onChange={update('contact_person')} required placeholder="Full name" />
+                {form.client_type === 'business' && (
+                  <>
+                    <Field label="Company Name" name="company_name" value={form.company_name} onChange={update('company_name')} required placeholder="Your company name" />
+                    <Field label="Business Registration #" name="business_reg_number" value={form.business_reg_number} onChange={update('business_reg_number')} placeholder="BR number" />
+                  </>
+                )}
+                <Field label="Full Name" name="contact_person" value={form.contact_person} onChange={update('contact_person')} required placeholder={form.client_type === 'business' ? 'Contact person at company' : 'Your full name'} />
                 <Field label="Phone Number" name="phone" value={form.phone} onChange={update('phone')} required placeholder="077 123 4567" />
-                <Field label="Email" name="email" value={form.email} onChange={update('email')} type="email" placeholder="you@company.com" />
+                <Field label="Email" name="email" value={form.email} onChange={update('email')} type="email" placeholder={form.client_type === 'business' ? 'business@company.com' : 'you@email.com'} />
+                <Field label="NIC Number" name="nic_number" value={form.nic_number} onChange={update('nic_number')} placeholder="National Identity Card number" />
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Address</label>
-                  <input type="text" placeholder="Business address" value={form.address} onChange={update('address')} className={inputClass} />
+                  <input type="text" placeholder={form.client_type === 'business' ? 'Business address' : 'Your address'} value={form.address} onChange={update('address')} className={inputClass} />
                 </div>
-                <Field label="NIC Number" name="nic_number" value={form.nic_number} onChange={update('nic_number')} placeholder="NIC number" />
-                <Field label="Business Registration #" name="business_reg_number" value={form.business_reg_number} onChange={update('business_reg_number')} placeholder="BR number" />
               </div>
             </motion.div>
 
