@@ -156,10 +156,14 @@ export default function AdminDashboard() {
     setTrackLoading(true);
     setTrackData(null);
     try {
-      const res = await fetch(`${API}/shipments/${id}/events`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-      if (res.ok) {
-        const s = await fetch(`${API}/shipments/${id}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-        setTrackData({ shipment: await s.json(), ...await res.json() });
+      const [eventsRes, shipmentRes] = await Promise.all([
+        fetch(`${API}/shipments/${id}/events`, { headers: { 'Authorization': `Bearer ${getToken()}` } }),
+        fetch(`${API}/shipments/${id}`, { headers: { 'Authorization': `Bearer ${getToken()}` } })
+      ]);
+      if (eventsRes.ok && shipmentRes.ok) {
+        const events = await eventsRes.json();
+        const shipment = await shipmentRes.json();
+        setTrackData({ shipment, ...events });
       }
     } catch (err) { console.error(err); } finally { setTrackLoading(false); }
   };

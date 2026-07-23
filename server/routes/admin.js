@@ -70,6 +70,7 @@ router.get('/stats', async (req, res) => {
     const activeRiders = await query("SELECT COUNT(*) FROM delivery_staff WHERE role IN ('pickup_driver','delivery_rider') AND is_active = true");
     const totalClients = await query("SELECT COUNT(*) FROM clients WHERE is_active = true");
     const pendingCod = await query("SELECT COALESCE(SUM(cod_amount), 0) AS value FROM shipments WHERE cod_amount > 0 AND status != 'delivered'");
+    const pendingScan = await query("SELECT COUNT(*) FROM shipments WHERE status = 'pending_scan'");
 
     res.json({
       total: parseInt(total.rows[0].count),
@@ -88,6 +89,7 @@ router.get('/stats', async (req, res) => {
       activeRiders: parseInt(activeRiders.rows[0].count),
       totalClients: parseInt(totalClients.rows[0].count),
       pendingCod: parseFloat(pendingCod.rows[0].value),
+      pendingScan: parseInt(pendingScan.rows[0].count),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -545,12 +547,14 @@ router.get('/deliveries', async (req, res) => {
 router.put('/deliveries/:id/complete', async (req, res) => {
   try {
     const { receiver_name, signature, delivery_photo, remarks } = req.body;
+    const riderResult = await query(`SELECT d.name FROM shipments s LEFT JOIN delivery_staff d ON s.delivery_rider_id = d.id WHERE s.id = $1`, [req.params.id]);
+    const riderName = riderResult.rows[0]?.name || null;
     const result = await query(`UPDATE shipments SET status='delivered', receiver_signature=$1, delivery_photo=$2, delivery_remarks=$3, delivered_by=$4, delivered_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=$5 RETURNING *`,
-      [signature || null, delivery_photo || null, remarks || null, receiver_name || null, req.params.id]);
+      [signature || null, delivery_photo || null, remarks || null, riderName, req.params.id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
     await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description, staff_name)
       VALUES ($1, 'delivered', 'Delivered', $2, $3)`,
-      [req.params.id, remarks ? `Delivered successfully. Remarks: ${remarks}` : 'Delivered successfully', receiver_name || null]);
+      [req.params.id, remarks ? `Delivered successfully. Remarks: ${remarks}` : 'Delivered successfully', riderName]);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });

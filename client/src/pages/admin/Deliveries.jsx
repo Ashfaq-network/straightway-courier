@@ -3,7 +3,9 @@ import { useState, useEffect } from 'react';
 const API = '/api/admin';
 
 const statusColors = {
+  sorted: 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
   out_for_delivery: 'bg-blue-50 text-blue-700 ring-blue-600/20',
+  customer_contacted: 'bg-teal-50 text-teal-700 ring-teal-600/20',
   delivered: 'bg-green-50 text-green-700 ring-green-600/20',
   failed_delivery: 'bg-red-50 text-red-700 ring-red-600/20',
   rescheduled: 'bg-cyan-50 text-cyan-700 ring-cyan-600/20',
@@ -11,7 +13,9 @@ const statusColors = {
 
 const statusOptions = [
   { value: '', label: 'All Deliveries' },
+  { value: 'sorted', label: 'Sorted (Ready)' },
   { value: 'out_for_delivery', label: 'Out for Delivery' },
+  { value: 'customer_contacted', label: 'Customer Contacted' },
   { value: 'delivered', label: 'Delivered' },
   { value: 'failed_delivery', label: 'Failed' },
   { value: 'rescheduled', label: 'Rescheduled' },
@@ -157,7 +161,7 @@ export default function Deliveries() {
                     </td>
                     <td className="px-5 py-3.5 text-[13px] text-gray-500">{s.delivered_at ? new Date(s.delivered_at).toLocaleString() : '-'}</td>
                     <td className="px-5 py-3.5 text-right">
-                      {s.status === 'out_for_delivery' && (
+                      {s.status !== 'delivered' && (
                         <button onClick={() => setCompleteForm({ id: s.id, tracking_number: s.tracking_number, receiver_name: s.receiver_name, remarks: '', signature: '', delivery_photo: '' })}
                           className="px-3 py-1.5 rounded-lg text-xs font-semibold text-green-600 bg-green-50 hover:bg-green-100 ring-1 ring-inset ring-green-600/20 transition-colors">Complete</button>
                       )}

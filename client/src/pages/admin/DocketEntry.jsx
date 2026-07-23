@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 
 const API = '/api/admin';
 
+const esc = (str) => String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
 const localDT = () => {
   const d = new Date();
   const off = d.getTimezoneOffset();
@@ -55,7 +57,7 @@ export default function DocketEntry() {
 
   const getToken = () => sessionStorage.getItem('swc_token');
 
-  useEffect(() => { fetchItems(); fetchRiders(); fetchClients(); }, []);
+  useEffect(() => { fetchRiders(); fetchClients(); }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -322,7 +324,7 @@ export default function DocketEntry() {
   const handlePDF = (s) => {
     const w = window.open('', '_blank');
     w.document.write(`
-      <html><head><title>Docket ${s.tracking_number}</title>
+      <html><head><title>Docket ${esc(s.tracking_number)}</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
         .header { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 20px; }
@@ -340,32 +342,32 @@ export default function DocketEntry() {
       </style></head><body>
       <div class="header">
         <h1>STRAIGHTWAY COURIERS</h1>
-        <h2>Docket Entry — ${s.tracking_number}</h2>
+        <h2>Docket Entry — ${esc(s.tracking_number)}</h2>
       </div>
       <div class="info">
         <div class="box">
           <h3>Sender</h3>
-          <p><strong>${s.sender_name || ''}</strong></p>
-          <p>${s.sender_phone || ''}</p>
-          <p>${s.sender_address || ''}</p>
+          <p><strong>${esc(s.sender_name)}</strong></p>
+          <p>${esc(s.sender_phone)}</p>
+          <p>${esc(s.sender_address)}</p>
         </div>
         <div class="box">
           <h3>Receiver</h3>
-          <p><strong>${s.receiver_name || ''}</strong></p>
-          <p>${s.receiver_phone || ''}</p>
-          <p>Postal Code: ${s.receiver_address || ''}</p>
+          <p><strong>${esc(s.receiver_name)}</strong></p>
+          <p>${esc(s.receiver_phone)}</p>
+          <p>Postal Code: ${esc(s.receiver_address)}</p>
         </div>
       </div>
       <table class="details">
-        <tr><td>Docket #</td><td>${s.tracking_number}</td></tr>
-        ${s.sw_tracking_number ? `<tr><td>SW Tracking #</td><td>${s.sw_tracking_number}</td></tr>` : ''}
-        <tr><td>Destination</td><td>${s.destination || ''}</td></tr>
-        <tr><td>Items</td><td>${s.num_items || 1}</td></tr>
-        <tr><td>Weight</td><td>${s.weight || '-'}</td></tr>
+        <tr><td>Docket #</td><td>${esc(s.tracking_number)}</td></tr>
+        ${s.sw_tracking_number ? `<tr><td>SW Tracking #</td><td>${esc(s.sw_tracking_number)}</td></tr>` : ''}
+        <tr><td>Destination</td><td>${esc(s.destination)}</td></tr>
+        <tr><td>Items</td><td>${esc(s.num_items || 1)}</td></tr>
+        <tr><td>Weight</td><td>${esc(s.weight || '-')}</td></tr>
         <tr><td>COD Amount</td><td>${s.cod_amount ? 'Rs. ' + parseFloat(s.cod_amount).toLocaleString() : '-'}</td></tr>
-        <tr><td>Sorting Area</td><td>${s.sorting_area || '-'}</td></tr>
-        <tr><td>Status</td><td>${s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</td></tr>
-        ${s.special_instructions ? `<tr><td>Instructions</td><td>${s.special_instructions}</td></tr>` : ''}
+        <tr><td>Sorting Area</td><td>${esc(s.sorting_area || '-')}</td></tr>
+        <tr><td>Status</td><td>${esc(s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}</td></tr>
+        ${s.special_instructions ? `<tr><td>Instructions</td><td>${esc(s.special_instructions)}</td></tr>` : ''}
       </table>
       <div class="footer">Generated on ${new Date().toLocaleDateString('en-GB')} — Straightway Couriers</div>
       <script>window.print()<\/script>
