@@ -22,6 +22,8 @@ export default function DeliverySheet() {
   const [statusFilter, setStatusFilter] = useState('');
   const [physicalScanValue, setPhysicalScanValue] = useState('');
   const [physicalScanStatus, setPhysicalScanStatus] = useState('');
+  const [lookupParcel, setLookupParcel] = useState(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [editForm, setEditForm] = useState({});
   const physicalScanRef = useRef(null);
@@ -49,9 +51,37 @@ export default function DeliverySheet() {
 
   useEffect(() => { fetchSheet(); }, [riderFilter]);
 
-  const processScan = useCallback(async (trackingNumber) => {
-    const tn = trackingNumber.trim();
-    if (!tn) return;
+  const lookupTracking = async (tn) => {
+    if (!tn.trim()) return;
+    setLookupLoading(true);
+    setLookupParcel(null);
+    try {
+      const res = await fetch(`${API}/tracking/${encodeURIComponent(tn.trim())}`, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLookupParcel(data);
+      } else {
+        setPhysicalScanStatus(`✗ ${tn} — Parcel not found`);
+        setTimeout(() => setPhysicalScanStatus(''), 4000);
+      }
+    } catch {
+      setPhysicalScanStatus(`✗ ${tn} — Network error`);
+      setTimeout(() => setPhysicalScanStatus(''), 4000);
+    } finally { setLookupLoading(false); }
+  };
+
+  const handleLookupKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      lookupTracking(physicalScanValue);
+    }
+  };
+
+  const handleScanConfirm = async () => {
+    if (!lookupParcel) return;
+    const tn = lookupParcel.tracking_number;
     setPhysicalScanStatus(`Scanning ${tn}...`);
     try {
       const res = await fetch(`${API}/scan/${encodeURIComponent(tn)}`, {
@@ -61,6 +91,8 @@ export default function DeliverySheet() {
       });
       if (res.ok) {
         setPhysicalScanStatus(`✓ ${tn} — Sorted & assigned!`);
+        setLookupParcel(null);
+        setPhysicalScanValue('');
         fetchSheet();
       } else {
         const d = await res.json();
@@ -70,7 +102,7 @@ export default function DeliverySheet() {
       setPhysicalScanStatus(`✗ ${tn} — Network error`);
     }
     setTimeout(() => setPhysicalScanStatus(''), 4000);
-  }, [riderFilter]);
+  };
 
   const handlePhysicalScanInput = (e) => {
     const value = e.target.value;
@@ -78,20 +110,16 @@ export default function DeliverySheet() {
     if (physicalScanTimer.current) clearTimeout(physicalScanTimer.current);
     physicalScanTimer.current = setTimeout(() => {
       if (value.trim()) {
-        processScan(value);
-        setPhysicalScanValue('');
+        lookupTracking(value);
       }
-    }, 150);
+    }, 300);
   };
 
   const handlePhysicalScanKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       if (physicalScanTimer.current) clearTimeout(physicalScanTimer.current);
-      if (physicalScanValue.trim()) {
-        processScan(physicalScanValue);
-        setPhysicalScanValue('');
-      }
+      lookupTracking(physicalScanValue);
     }
   };
 
@@ -162,11 +190,11 @@ export default function DeliverySheet() {
       <div className="no-print bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-            <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+            <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" /></svg>
           </div>
           <div>
-            <h3 className="text-sm font-bold text-gray-900">Barcode Scanner</h3>
-            <p className="text-[12px] text-gray-400">Scan a parcel barcode to sort and assign to rider</p>
+            <h3 className="text-sm font-bold text-gray-900">Scan or Type Tracking Number</h3>
+            <p className="text-[12px] text-gray-400">Type or scan barcode — parcel details will appear below</p>
           </div>
           <div className="ml-auto flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -176,7 +204,7 @@ export default function DeliverySheet() {
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
             <div className="absolute left-3 top-1/2 -translate-y-1/2">
-              <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+              <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
             </div>
             <input
               ref={physicalScanRef}
@@ -184,8 +212,7 @@ export default function DeliverySheet() {
               value={physicalScanValue}
               onChange={handlePhysicalScanInput}
               onKeyDown={handlePhysicalScanKeyDown}
-              placeholder="Scan barcode here — auto-detects tracking number..."
-              autoFocus
+              placeholder="Type or scan tracking number (e.g. SW001)..."
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-400 transition-all"
             />
           </div>
@@ -199,6 +226,61 @@ export default function DeliverySheet() {
           <p className={`text-sm font-semibold mt-2 ${physicalScanStatus.startsWith('✓') ? 'text-emerald-600' : physicalScanStatus.startsWith('✗') ? 'text-red-500' : 'text-amber-600'}`}>
             {physicalScanStatus}
           </p>
+        )}
+
+        {/* Parcel Details Card */}
+        {lookupLoading && (
+          <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
+            <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+            Looking up parcel...
+          </div>
+        )}
+        {lookupParcel && !lookupLoading && (
+          <div className="mt-4 bg-gray-50 rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold ring-1 ring-inset ${statusColors[lookupParcel.status] || 'bg-gray-100 text-gray-600 ring-gray-200'}`}>
+                  {lookupParcel.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </span>
+                <span className="text-sm font-bold text-gray-900 font-mono">{lookupParcel.tracking_number}</span>
+              </div>
+              <button onClick={handleScanConfirm}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/25 transition-all active:scale-[0.97] flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" /></svg>
+                Scan & Assign
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div>
+                <p className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">Receiver</p>
+                <p className="font-medium text-gray-900">{lookupParcel.receiver_name || '-'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">Phone</p>
+                <p className="font-medium text-gray-900">{lookupParcel.receiver_phone || '-'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">Address</p>
+                <p className="font-medium text-gray-900 truncate">{lookupParcel.receiver_address || lookupParcel.delivery_address || '-'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">COD</p>
+                <p className="font-medium text-gray-900">{lookupParcel.cod_amount ? `LKR ${lookupParcel.cod_amount}` : '-'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">Items</p>
+                <p className="font-medium text-gray-900">{lookupParcel.num_items || '-'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">Client</p>
+                <p className="font-medium text-gray-900">{lookupParcel.client_id || '-'}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">Instructions</p>
+                <p className="font-medium text-gray-900">{lookupParcel.special_instructions || '-'}</p>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 

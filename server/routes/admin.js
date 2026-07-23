@@ -134,7 +134,7 @@ router.get('/shipments/:id', async (req, res) => {
 
 router.get('/tracking/:tracking_number', async (req, res) => {
   try {
-    const result = await query('SELECT * FROM shipments WHERE tracking_number = $1', [req.params.tracking_number]);
+    const result = await query('SELECT * FROM shipments WHERE tracking_number = $1 OR sw_tracking_number = $1', [req.params.tracking_number]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
     res.json(result.rows[0]);
   } catch (err) {

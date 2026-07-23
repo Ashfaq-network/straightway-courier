@@ -411,13 +411,13 @@ export default function Pickups() {
                                 className="px-2.5 py-1 rounded-lg text-xs font-medium text-purple-600 hover:bg-purple-50 transition-colors">Assign</button>
                               <button onClick={() => handleStatus(p.id, 'picked_up')}
                                 className="px-2.5 py-1 rounded-lg text-xs font-medium text-orange-600 hover:bg-orange-50 transition-colors">Pick Up</button>
-                              <button onClick={() => handleDelete(p.id, p.tracking_number)}
-                                className="px-2.5 py-1 rounded-lg text-xs font-medium text-red-500 hover:bg-red-50 transition-colors">Delete</button>
                             </>
                           )}
                           {p.status === 'picked_up' && (
                             <span className="text-xs text-gray-400 italic px-2.5 py-1">Picked up</span>
                           )}
+                          <button onClick={() => handleDelete(p.id, p.tracking_number)}
+                            className="px-2.5 py-1 rounded-lg text-xs font-medium text-red-500 hover:bg-red-50 transition-colors">Delete</button>
                         </div>
                       )}
                     </td>
