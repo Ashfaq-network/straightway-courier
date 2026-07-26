@@ -193,16 +193,34 @@ export default function DeliverySheet() {
             <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" /></svg>
           </div>
           <div>
-            <h3 className="text-sm font-bold text-gray-900">Scan or Type Tracking Number</h3>
-            <p className="text-[12px] text-gray-400">Type or scan barcode — parcel details will appear below</p>
-          </div>
-          <div className="ml-auto flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px] font-semibold text-emerald-600">Ready</span>
+            <h3 className="text-sm font-bold text-gray-900">Assign Parcel to Rider</h3>
+            <p className="text-[12px] text-gray-400">Select rider first, then scan or type tracking number</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
+
+        {/* Step 1: Select Rider */}
+        <div className={`rounded-xl p-4 mb-3 ${riderFilter ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50 border border-amber-200'}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${riderFilter ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'}`}>1</span>
+            <span className="text-sm font-semibold text-gray-900">Select Rider</span>
+            {riderFilter && <span className="text-[11px] text-emerald-600 font-semibold ml-auto">
+              {riders.find(r => String(r.id) === String(riderFilter))?.name}
+            </span>}
+          </div>
+          <select value={riderFilter} onChange={(e) => setRiderFilter(e.target.value)}
+            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-400 transition-all">
+            <option value="">-- Choose a rider first --</option>
+            {riders.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+        </div>
+
+        {/* Step 2: Scan / Type */}
+        <div className={`rounded-xl p-4 ${riderFilter ? 'bg-gray-50 border border-gray-200' : 'bg-gray-50 border border-gray-200 opacity-50'}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${riderFilter ? 'bg-emerald-600 text-white' : 'bg-gray-400 text-white'}`}>2</span>
+            <span className="text-sm font-semibold text-gray-900">Scan or Type Tracking Number</span>
+          </div>
+          <div className="relative">
             <div className="absolute left-3 top-1/2 -translate-y-1/2">
               <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
             </div>
@@ -212,16 +230,13 @@ export default function DeliverySheet() {
               value={physicalScanValue}
               onChange={handlePhysicalScanInput}
               onKeyDown={handlePhysicalScanKeyDown}
-              placeholder="Type or scan tracking number (e.g. SW001)..."
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-400 transition-all"
+              disabled={!riderFilter}
+              placeholder={riderFilter ? 'Type or scan tracking number (e.g. SW001)...' : 'Select a rider first to enable scanning...'}
+              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-400 transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
             />
           </div>
-          <select value={riderFilter} onChange={(e) => setRiderFilter(e.target.value)}
-            className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all">
-            <option value="">Assign to rider...</option>
-            {riders.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-          </select>
         </div>
+
         {physicalScanStatus && (
           <p className={`text-sm font-semibold mt-2 ${physicalScanStatus.startsWith('✓') ? 'text-emerald-600' : physicalScanStatus.startsWith('✗') ? 'text-red-500' : 'text-amber-600'}`}>
             {physicalScanStatus}
