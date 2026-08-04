@@ -764,7 +764,8 @@ router.get('/reports/rider-performance', async (req, res) => {
 router.get('/reports/export', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    let sql = `SELECT s.*, c.company_name AS client_name FROM shipments s LEFT JOIN clients c ON s.client_id = c.id WHERE 1=1`;
+    let sql = `SELECT s.*, c.company_name AS client_name FROM shipments s LEFT JOIN clients c ON s.client_id = c.id
+      WHERE (s.sw_tracking_number IS NOT NULL OR s.status NOT IN ('pickup_requested','picked_up'))`;
     const params = [];
     let idx = 1;
     if (startDate) { sql += ` AND s.created_at >= $${idx}`; params.push(startDate); idx++; }
