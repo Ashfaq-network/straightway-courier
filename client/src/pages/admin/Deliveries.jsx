@@ -156,7 +156,7 @@ export default function Deliveries() {
                     <td className="px-5 py-3.5 text-gray-600 text-[13px]">{s.rider_name || <span className="text-gray-400">—</span>}</td>
                     <td className="px-5 py-3.5">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[11px] font-semibold ring-1 ring-inset ${statusColors[s.status] || 'bg-gray-100 text-gray-600 ring-gray-500/10'}`}>
-                        {s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                        {(s.status || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-[13px] text-gray-500">{s.delivered_at ? new Date(s.delivered_at).toLocaleString() : '-'}</td>

@@ -113,7 +113,7 @@ export default function Pickups() {
         origin: pickupForm.sender_address || 'N/A',
         destination: pickupForm.sender_address || 'N/A',
         delivery_type: '', cod_amount: '', delivery_charge: '',
-        payment_status: 'pending',
+        payment_status: pickupForm.cod_amount ? 'cod' : 'pending',
         status: editingId ? undefined : 'pickup_requested',
       };
       if (!editingId) {
@@ -394,8 +394,7 @@ export default function Pickups() {
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[11px] font-semibold bg-gray-100 text-gray-500 ring-1 ring-inset ring-gray-500/10">No pickup</span>
                       ) : (
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[11px] font-semibold ring-1 ring-inset ${statusColors[p.status] || 'bg-gray-100 text-gray-600 ring-gray-500/10'}`}>
-                          {p.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                        </span>
+                          {(p.status || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}                        </span>
                       )}
                     </td>
                     <td className="px-5 py-3.5 text-right whitespace-nowrap">

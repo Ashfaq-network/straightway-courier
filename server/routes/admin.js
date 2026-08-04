@@ -185,14 +185,21 @@ router.post('/shipments', async (req, res) => {
     if (!destination || !destination.trim()) return res.status(400).json({ error: 'Destination is required' });
     if (!tracking_number || !tracking_number.trim()) return res.status(400).json({ error: 'Tracking number is required' });
 
+    const dup = await query('SELECT id FROM shipments WHERE tracking_number = $1 LIMIT 1', [tracking_number]);
+    if (dup.rows[0]) return res.status(400).json({ error: `Tracking number ${tracking_number} already exists` });
+    if (sw_tracking_number) {
+      const dupSw = await query('SELECT id FROM shipments WHERE sw_tracking_number = $1 LIMIT 1', [sw_tracking_number]);
+      if (dupSw.rows[0]) return res.status(400).json({ error: `Docket number ${sw_tracking_number} already exists` });
+    }
+
     const result = await query(`
       INSERT INTO shipments (client_id, tracking_number, sw_tracking_number, sender_name, sender_phone,
         sender_email, sender_address, receiver_name, receiver_phone, receiver_email,
         receiver_address, pickup_address, delivery_address, origin, destination,
         parcel_type, parcel_description, num_items, weight, delivery_type,
         cod_amount, delivery_charge, payment_status, special_instructions,
-        estimated_delivery, notes, status, pickup_id)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
+        estimated_delivery, notes, status, pickup_id, pickup_scheduled_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29)
       RETURNING *
     `, [client_id || null, tracking_number, sw_tracking_number || null, sender_name, sender_phone || null,
       sender_email || null, sender_address || null, receiver_name, receiver_phone || null,
@@ -201,7 +208,7 @@ router.post('/shipments', async (req, res) => {
       parcel_description || null, num_items || 1, weight || null, delivery_type || null,
       cod_amount || 0, delivery_charge || 0, payment_status || 'pending',
       special_instructions || null, estimated_delivery || null, notes || null,
-      status || 'pickup_requested', pickup_id || null
+      status || 'pickup_requested', pickup_id || null, req.body.pickup_scheduled_at || null
     ]);
 
     const shipment = result.rows[0];
@@ -277,7 +284,6 @@ router.put('/shipments/:id/status', async (req, res) => {
       extraValues.push(staff_name || req.user?.username || null, receiver_signature || null, delivery_photo || null, delivery_remarks || null);
     }
     if (status === 'picked_up') extraFields = ', pickup_completed_at=CURRENT_TIMESTAMP';
-    if (status === 'returned_to_sender') extraFields = ', updated_at=CURRENT_TIMESTAMP';
 
     const shipment = await query(`UPDATE shipments SET status=$1, updated_at=CURRENT_TIMESTAMP${extraFields} WHERE id=$2 RETURNING *`,
       [status, req.params.id, ...extraValues]);
@@ -650,7 +656,7 @@ router.post('/cod/settle', async (req, res) => {
     if (existing.rows[0]) return res.status(400).json({ error: 'Already settled for this shipment' });
     const result = await query(`INSERT INTO cod_settlements (shipment_id, rider_id, cod_amount, collected_amount, settled_amount, status, collected_at, notes)
       VALUES ($1, $2, $3, $4, $4, 'settled', CURRENT_TIMESTAMP, $5) RETURNING *`,
-      [shipment_id, rider_id || null, shipment.rows[0].cod_amount, collected_amount || shipment.rows[0].cod_amount, notes || null]);
+      [shipment_id, rider_id || null, shipment.rows[0].cod_amount, collected_amount !== undefined && collected_amount !== '' ? collected_amount : shipment.rows[0].cod_amount, notes || null]);
     res.status(201).json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -751,7 +757,12 @@ router.get('/reports/rider-performance', async (req, res) => {
         COUNT(s.id) AS total_assigned,
         COALESCE(SUM(s.cod_amount) FILTER (WHERE s.payment_status = 'cod' AND s.status = 'delivered'), 0) AS cod_collected
       FROM delivery_staff d
-      LEFT JOIN shipments s ON s.delivery_rider_id = d.id OR s.pickup_driver_id = d.id
+      LEFT JOIN LATERAL (
+        SELECT DISTINCT ON (s.id) s.id, s.status, s.cod_amount, s.payment_status, s.delivered_at
+        FROM shipments s
+        WHERE s.delivery_rider_id = d.id OR s.pickup_driver_id = d.id
+        ORDER BY s.id
+      ) s ON TRUE
       ${where}
       GROUP BY d.id, d.name, d.phone, d.role ORDER BY deliveries_completed DESC
     `, params);

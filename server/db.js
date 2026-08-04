@@ -153,6 +153,7 @@ export async function initDB() {
   await addCol('shipments', 'sw_tracking_number', 'TEXT');
   await addCol('shipments', 'pickup_id', 'INTEGER REFERENCES shipments(id)');
   await pool.query('ALTER TABLE shipments DROP CONSTRAINT IF EXISTS shipments_tracking_number_key');
+  await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS shipments_sw_tracking_number_uniq ON shipments (sw_tracking_number) WHERE sw_tracking_number IS NOT NULL").catch(() => {});
 
   await addCol('clients', 'nic_number', 'TEXT');
   await addCol('clients', 'business_reg_number', 'TEXT');

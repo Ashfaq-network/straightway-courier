@@ -22,19 +22,25 @@ export default function Reports() {
   }, [tab, date, monthStr]);
 
   const fetchDaily = async () => {
-    const res = await fetch(`${API}/reports/daily?date=${date}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-    if (res.ok) setDaily(await res.json());
+    try {
+      const res = await fetch(`${API}/reports/daily?date=${date}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (res.ok) setDaily(await res.json());
+    } catch (err) { console.error(err); }
   };
 
   const fetchMonthly = async () => {
-    const [y, m] = monthStr.split('-');
-    const res = await fetch(`${API}/reports/monthly?year=${y}&month=${m}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-    if (res.ok) setMonthly(await res.json());
+    try {
+      const [y, m] = monthStr.split('-');
+      const res = await fetch(`${API}/reports/monthly?year=${y}&month=${m}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (res.ok) setMonthly(await res.json());
+    } catch (err) { console.error(err); }
   };
 
   const fetchRiderPerf = async () => {
-    const res = await fetch(`${API}/reports/rider-performance`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-    if (res.ok) setRiderPerf(await res.json());
+    try {
+      const res = await fetch(`${API}/reports/rider-performance`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (res.ok) setRiderPerf(await res.json());
+    } catch (err) { console.error(err); }
   };
 
   const handleExport = async () => {
@@ -48,7 +54,7 @@ export default function Reports() {
 
     const headers = ['Docket #','Client','Sender','Receiver','Origin','Destination','Weight','Charge','COD','Status','Created'];
     const rows = data.map(s => [s.sw_tracking_number || s.tracking_number, s.client_name || '', s.sender_name, s.receiver_name, s.origin, s.destination, s.weight || '', s.delivery_charge || 0, s.cod_amount || 0, s.status, new Date(s.created_at).toLocaleDateString()]);
-    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -201,7 +207,7 @@ export default function Reports() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-gray-500 capitalize">{r.role.replace(/_/g, ' ')}</td>
+                    <td className="px-5 py-3.5 text-gray-500 capitalize">{(r.role || '').replace(/_/g, ' ')}</td>
                     <td className="px-5 py-3.5 text-center text-gray-700 font-medium">{r.total_assigned}</td>
                     <td className="px-5 py-3.5 text-center">
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-50 text-green-700 ring-1 ring-green-200 text-xs font-semibold">

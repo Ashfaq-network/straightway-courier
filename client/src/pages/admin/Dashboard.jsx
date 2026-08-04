@@ -94,7 +94,10 @@ export default function AdminDashboard() {
   let adminName = 'Admin';
   try {
     const t = sessionStorage.getItem('swc_token');
-    if (t) adminName = JSON.parse(atob(t.split('.')[1])).username;
+    if (t) {
+      const payload = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      adminName = JSON.parse(decodeURIComponent(escape(atob(payload)))).username;
+    }
   } catch {}
 
   useEffect(() => {
@@ -131,12 +134,13 @@ export default function AdminDashboard() {
     } catch (err) { console.error(err); }
   };
 
-  const fetchShipments = async () => {
+  const fetchShipments = async (statusOverride) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
-      if (statusFilter) params.append('status', statusFilter);
+      const sf = statusOverride !== undefined ? statusOverride : statusFilter;
+      if (sf) params.append('status', sf);
       if (dateFrom) params.append('startDate', dateFrom);
       if (dateTo) params.append('endDate', dateTo);
       const res = await fetch(`${API}/shipments?${params}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
@@ -365,7 +369,7 @@ export default function AdminDashboard() {
                         onChange={(e) => setSearch(e.target.value)}
                         className="pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 w-48 transition-all" />
                     </div>
-                    <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setTimeout(() => fetchShipments(), 50); }}
+                    <select value={statusFilter} onChange={(e) => { const v = e.target.value; setStatusFilter(v); setTimeout(() => fetchShipments(v), 50); }}
                       className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all">
                       <option value="">All Status</option>
                       {['pending_scan','pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','returned_to_sender','rescheduled'].map(st => (
@@ -426,7 +430,7 @@ export default function AdminDashboard() {
                             <td className="px-6 py-4 text-[13px] text-gray-500 max-w-[140px] truncate">{s.origin} → {s.destination}</td>
                             <td className="px-6 py-4">
                               <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide ${statusColors[s.status] || 'bg-gray-100 text-gray-700'}`}>
-                                {s.status.replace(/_/g, ' ')}
+                                {(s.status || '').replace(/_/g, ' ')}
                               </span>
                             </td>
                             <td className="px-6 py-4 text-center text-[13px] font-semibold text-gray-700">{s.cod_amount ? `LKR ${Number(s.cod_amount).toLocaleString()}` : <span className="text-gray-300">—</span>}</td>

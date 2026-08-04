@@ -33,6 +33,10 @@ export default function DeliverySheet() {
 
   useEffect(() => { fetchRiders(); fetchSheet(); }, []);
 
+  useEffect(() => {
+    return () => { if (physicalScanTimer.current) clearTimeout(physicalScanTimer.current); };
+  }, []);
+
   const fetchRiders = async () => {
     try {
       const res = await fetch(`${API}/staff`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
@@ -255,8 +259,7 @@ export default function DeliverySheet() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold ring-1 ring-inset ${statusColors[lookupParcel.status] || 'bg-gray-100 text-gray-600 ring-gray-200'}`}>
-                  {lookupParcel.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                </span>
+                  {(lookupParcel.status || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}                </span>
                 <span className="text-sm font-bold text-gray-900 font-mono">{lookupParcel.tracking_number}</span>
               </div>
               <button onClick={handleScanConfirm}
@@ -402,7 +405,7 @@ export default function DeliverySheet() {
                               <td className="px-4 py-2"><input value={editForm.special_instructions} onChange={e => setEditForm({...editForm, special_instructions: e.target.value})} className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all w-full" /></td>
                               <td className="px-4 py-2">
                                 <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})} className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all">
-                                  {['at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','rescheduled'].map(st => (
+                                  {['pending_scan','at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','returned_to_sender','rescheduled'].map(st => (
                                     <option key={st} value={st}>{st.replace(/_/g, ' ')}</option>
                                   ))}
                                 </select>
@@ -426,7 +429,7 @@ export default function DeliverySheet() {
                               <td className="px-4 py-3 text-xs text-amber-600 max-w-[120px] truncate">{s.special_instructions || '-'}</td>
                               <td className="px-4 py-3 text-xs">
                                 <span className={`inline-block px-2.5 py-1 rounded-lg text-[11px] font-semibold ${statusColors[s.status] || 'bg-gray-100 text-gray-700 ring-1 ring-gray-200'}`}>
-                                  {s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                  {(s.status || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                                 </span>
                               </td>
                               <td className="px-4 py-3 print:hidden">
@@ -442,11 +445,11 @@ export default function DeliverySheet() {
                                   {s.status !== 'delivered' && (
                                     <button onClick={async () => {
                                       if (!confirm(`Mark ${s.tracking_number} as delivered?`)) return;
-                                      await fetch(`${API}/scan/${s.tracking_number}`, {
+                                      const res = await fetch(`${API}/deliveries/${s.id}/complete`, {
                                         method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
                                         body: JSON.stringify({ receiver_name: s.receiver_name, remarks: 'Marked delivered manually', rider_id: s.delivery_rider_id || riderFilter || null })
                                       });
-                                      fetchSheet();
+                                      if (res.ok) fetchSheet(); else alert('Failed to mark delivered');
                                     }} className="text-green-600 hover:text-green-700 text-xs font-medium transition-colors">Deliver</button>
                                   )}
                                 </div>

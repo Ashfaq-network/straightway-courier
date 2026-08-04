@@ -51,14 +51,17 @@ export default function COD() {
 
   const handleSettle = async (e) => {
     e.preventDefault();
-    await fetch(`${API}/cod/settle`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-      body: JSON.stringify(settleForm)
-    });
-    setShowSettle(false);
-    setSettleForm({ shipment_id: '', rider_id: '', collected_amount: '', notes: '' });
-    fetchSettlements();
-    fetchSummary();
+    try {
+      const res = await fetch(`${API}/cod/settle`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify(settleForm)
+      });
+      if (!res.ok) { const d = await res.json(); alert(d.error || 'Failed to settle'); return; }
+      setShowSettle(false);
+      setSettleForm({ shipment_id: '', rider_id: '', collected_amount: '', notes: '' });
+      fetchSettlements();
+      fetchSummary();
+    } catch (err) { alert(err.message); }
   };
 
   return (
@@ -192,9 +195,9 @@ export default function COD() {
                     <tr key={s.id} className="hover:bg-gray-50/60 transition-colors group">
                       <td className="px-5 py-3.5 font-medium text-gray-900">{s.tracking_number}</td>
                       <td className="px-5 py-3.5 text-gray-600 text-[13px]">{s.rider_name || '-'}</td>
-                      <td className="px-5 py-3.5 font-medium text-gray-900">LKR {parseFloat(s.cod_amount).toLocaleString()}</td>
-                      <td className="px-5 py-3.5 font-medium text-green-600">LKR {parseFloat(s.collected_amount).toLocaleString()}</td>
-                      <td className="px-5 py-3.5 text-gray-600">LKR {parseFloat(s.settled_amount).toLocaleString()}</td>
+                      <td className="px-5 py-3.5 font-medium text-gray-900">LKR {s.cod_amount != null ? parseFloat(s.cod_amount).toLocaleString() : '0'}</td>
+                      <td className="px-5 py-3.5 font-medium text-green-600">LKR {s.collected_amount != null ? parseFloat(s.collected_amount).toLocaleString() : '0'}</td>
+                      <td className="px-5 py-3.5 text-gray-600">LKR {s.settled_amount != null ? parseFloat(s.settled_amount).toLocaleString() : '0'}</td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[11px] font-semibold ring-1 ring-inset ${s.status === 'settled' ? 'bg-green-50 text-green-700 ring-green-600/20' : 'bg-yellow-50 text-yellow-700 ring-yellow-600/20'}`}>
                           {s.status}

@@ -36,6 +36,24 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.post('/register', async (req, res) => {
+  try {
+    const { client_type, company_name, contact_person, phone, email, address,
+      nic_number, business_reg_number, bank_name, bank_branch, bank_account_number, bank_account_holder } = req.body;
+    if (!contact_person || !contact_person.trim()) return res.status(400).json({ error: 'Full name is required' });
+    if (!phone || !phone.trim()) return res.status(400).json({ error: 'Phone number is required' });
+    const result = await query(`INSERT INTO clients (client_type, company_name, contact_person, phone, email, address,
+      nic_number, business_reg_number, bank_name, bank_branch, bank_account_number, bank_account_holder, is_active)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,false) RETURNING id, contact_person, company_name, phone`,
+      [client_type || 'individual', company_name || null, contact_person, phone, email || null, address || null,
+      nic_number || null, business_reg_number || null, bank_name || null, bank_branch || null,
+      bank_account_number || null, bank_account_holder || null]);
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.use(authenticateClient);
 
 router.get('/profile', async (req, res) => {
@@ -131,7 +149,7 @@ router.get('/shipments/:tracking_number', async (req, res) => {
   try {
     const result = await query(`SELECT s.*, c.company_name AS client_name
       FROM shipments s LEFT JOIN clients c ON s.client_id = c.id
-      WHERE s.tracking_number = $1 AND s.client_id = $2`,
+      WHERE (s.tracking_number = $1 OR s.sw_tracking_number = $1) AND s.client_id = $2`,
       [req.params.tracking_number, req.client.client_id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
     const events = await query('SELECT * FROM tracking_events WHERE shipment_id = $1 ORDER BY timestamp ASC', [result.rows[0].id]);

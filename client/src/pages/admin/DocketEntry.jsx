@@ -196,6 +196,7 @@ export default function DocketEntry() {
           special_instructions: form.special_instructions,
           sorting_area: form.sorting_area,
           status: 'pending_scan',
+          payment_status: form.cod_amount ? 'cod' : 'pending',
           pickup_scheduled_at: form.docket_date || null,
           pickup_id: Number(selectedPickupId),
         };
@@ -222,8 +223,9 @@ export default function DocketEntry() {
           destination: form.destination || form.receiver_address || 'N/A',
           delivery_type: '',
           delivery_charge: '',
-          payment_status: 'pending',
+          payment_status: form.cod_amount ? 'cod' : 'pending',
           status: 'pending_scan',
+          pickup_scheduled_at: form.docket_date || null,
         };
         const res = await fetch(`${API}/shipments`, {
           method: 'POST',
@@ -366,7 +368,7 @@ export default function DocketEntry() {
         <tr><td>Weight</td><td>${esc(s.weight || '-')}</td></tr>
         <tr><td>COD Amount</td><td>${s.cod_amount ? 'Rs. ' + parseFloat(s.cod_amount).toLocaleString() : '-'}</td></tr>
         <tr><td>Sorting Area</td><td>${esc(s.sorting_area || '-')}</td></tr>
-        <tr><td>Status</td><td>${esc(s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}</td></tr>
+        <tr><td>Status</td><td>${esc((s.status || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}</td></tr>
         ${s.special_instructions ? `<tr><td>Instructions</td><td>${esc(s.special_instructions)}</td></tr>` : ''}
       </table>
       <div class="footer">Generated on ${new Date().toLocaleDateString('en-GB')} — Straightway Couriers</div>
@@ -461,7 +463,7 @@ export default function DocketEntry() {
       failed_delivery: 'bg-red-50 text-red-700 ring-1 ring-red-200',
     };
     const cls = colors[status] || 'bg-gray-100 text-gray-700 ring-1 ring-gray-200';
-    return <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide ${cls}`}>{status.replace(/_/g, ' ')}</span>;
+    return <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide ${cls}`}>{(status || '').replace(/_/g, ' ')}</span>;
   };
 
   return (

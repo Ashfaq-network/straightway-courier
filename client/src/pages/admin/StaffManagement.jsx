@@ -24,7 +24,7 @@ export default function StaffManagement() {
     e.preventDefault();
     const url = editStaff ? `${API}/staff/${editStaff.id}` : `${API}/staff`;
     const method = editStaff ? 'PUT' : 'POST';
-    const body = editStaff ? { name: form.name, phone: form.phone, email: form.email, username: form.username, role: form.role, is_active: true } : form;
+    const body = editStaff ? { name: form.name, phone: form.phone, email: form.email, username: form.username, role: form.role } : form;
 
     await fetch(url, {
       method,
