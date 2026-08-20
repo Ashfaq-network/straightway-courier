@@ -570,18 +570,19 @@ router.put('/deliveries/:id/complete', async (req, res) => {
 // ─── Scan to Deliver ─────────────────────────────────────────────
 router.put('/scan/:tracking_number', async (req, res) => {
   try {
-    const { receiver_name, remarks, rider_id } = req.body;
+    const { remarks, rider_id } = req.body;
     const tn = req.params.tracking_number;
     const result = await query(
-      `UPDATE shipments SET status='sorted', delivery_rider_id = COALESCE($4, delivery_rider_id), updated_at=CURRENT_TIMESTAMP
-       WHERE (tracking_number=$3 OR sw_tracking_number=$3)
+      `UPDATE shipments SET status='sorted', delivery_rider_id = COALESCE($2, delivery_rider_id), updated_at=CURRENT_TIMESTAMP
+       WHERE (tracking_number=$1 OR sw_tracking_number=$1)
        AND status IN ('pending_scan','at_sorting_center')
        RETURNING *`,
-      [receiver_name || null, remarks || null, tn, rider_id || null]);
+      [tn, rider_id || null]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Shipment not found or already in delivery' });
+    const riderName = rider_id ? (await query('SELECT name FROM delivery_staff WHERE id=$1', [rider_id])).rows[0]?.name : null;
     await query(`INSERT INTO tracking_events (shipment_id, event_type, status, description, staff_name)
-      VALUES ($1, 'sorted', 'Sorted', 'Scanned and assigned for delivery', $2)`,
-      [result.rows[0].id, receiver_name || null]);
+      VALUES ($1, 'sorted', 'Sorted', $2, $3)`,
+      [result.rows[0].id, remarks || 'Scanned and assigned for delivery', riderName || null]);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });

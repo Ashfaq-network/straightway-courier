@@ -299,28 +299,37 @@ export default function DocketEntry() {
 
   const handleAssign = async (e) => {
     e.preventDefault();
-    await fetch(`${API}/sorting/${assignForm.id}/assign`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-      body: JSON.stringify({ rider_id: assignForm.rider_id ? parseInt(assignForm.rider_id) : null, sorting_area: assignForm.sorting_area })
-    });
-    setAssignForm({ id: null, rider_id: '', sorting_area: '' });
-    fetchItems(search);
+    try {
+      const res = await fetch(`${API}/sorting/${assignForm.id}/assign`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ rider_id: assignForm.rider_id ? parseInt(assignForm.rider_id) : null, sorting_area: assignForm.sorting_area })
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Assign failed'); }
+      setAssignForm({ id: null, rider_id: '', sorting_area: '' });
+      fetchItems(search);
+    } catch (err) { alert('Network error'); }
   };
 
   const handleSort = async (id) => {
-    await fetch(`${API}/shipments/${id}/status`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-      body: JSON.stringify({ status: 'sorted' })
-    });
-    fetchItems(search);
+    try {
+      const res = await fetch(`${API}/shipments/${id}/status`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ status: 'sorted' })
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Sort failed'); }
+      fetchItems(search);
+    } catch (err) { alert('Network error'); }
   };
 
   const handleDelete = async (id, tn) => {
     if (!confirm(`Delete docket entry ${tn}?`)) return;
-    await fetch(`${API}/shipments/${id}`, {
-      method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` }
-    });
-    fetchItems(search);
+    try {
+      const res = await fetch(`${API}/shipments/${id}`, {
+        method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Delete failed'); return; }
+      fetchItems(search);
+    } catch (err) { alert('Network error'); }
   };
 
   const handlePDF = (s) => {

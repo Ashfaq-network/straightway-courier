@@ -134,6 +134,11 @@ export default function StaffDashboard() {
   const fetchProfile = async () => {
     try {
       const res = await fetch(`${API}/profile`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (res.status === 401 || res.status === 403) {
+        sessionStorage.removeItem('staff_token');
+        navigate('/staff');
+        return;
+      }
       if (res.ok) setProfile(await res.json());
     } catch (err) { console.error(err); }
   };
@@ -159,20 +164,21 @@ export default function StaffDashboard() {
         body: JSON.stringify({ status, ...extra })
       });
       if (res.ok) { setSelectedShipment(null); fetchShipments(); }
-    } catch (err) { console.error(err); } finally { setDoingAction(null); }
+      else { const d = await res.json().catch(() => ({})); alert(d.error || 'Update failed'); }
+    } catch (err) { alert('Network error'); } finally { setDoingAction(null); }
   };
 
   const handleDeliveryAttempt = async (id, reason, note) => {
     setDoingAction(id);
     try {
-      await fetch(`${API}/shipments/${id}/delivery-attempt`, {
+      const res = await fetch(`${API}/shipments/${id}/delivery-attempt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
         body: JSON.stringify({ reason, custom_note: note })
       });
-      setSelectedShipment(null);
-      fetchShipments();
-    } catch (err) { console.error(err); } finally { setDoingAction(null); }
+      if (res.ok) { setSelectedShipment(null); fetchShipments(); }
+      else { const d = await res.json().catch(() => ({})); alert(d.error || 'Failed to log attempt'); }
+    } catch (err) { alert('Network error'); } finally { setDoingAction(null); }
   };
 
   const handleLogout = () => {

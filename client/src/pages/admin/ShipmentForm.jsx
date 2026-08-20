@@ -42,11 +42,13 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
     setLoading(true);
     setError('');
     const url = isEdit ? `${API}/shipments/${shipment.id}` : `${API}/shipments`;
+    const body = { ...form };
+    ['pickup_driver_id', 'delivery_rider_id', 'client_id'].forEach(k => { if (body[k] === '') body[k] = null; });
     try {
       const res = await fetch(url, {
         method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-        body: JSON.stringify(form)
+        body: JSON.stringify(body)
       });
       if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to save'); }
       onDone();

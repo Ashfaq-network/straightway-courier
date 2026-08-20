@@ -43,6 +43,7 @@ export default function StaffLogin() {
       }
 
       const data = await res.json();
+      if (!data.token) throw new Error('Invalid server response');
       sessionStorage.setItem('staff_token', data.token);
       navigate('/staff/dashboard');
     } catch (err) {

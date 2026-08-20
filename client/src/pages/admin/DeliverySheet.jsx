@@ -28,13 +28,17 @@ export default function DeliverySheet() {
   const [editForm, setEditForm] = useState({});
   const physicalScanRef = useRef(null);
   const physicalScanTimer = useRef(null);
+  const statusClearTimers = useRef([]);
 
   const getToken = () => sessionStorage.getItem('swc_token');
 
   useEffect(() => { fetchRiders(); fetchSheet(); }, []);
 
   useEffect(() => {
-    return () => { if (physicalScanTimer.current) clearTimeout(physicalScanTimer.current); };
+    return () => {
+      if (physicalScanTimer.current) clearTimeout(physicalScanTimer.current);
+      statusClearTimers.current.forEach(clearTimeout);
+    };
   }, []);
 
   const fetchRiders = async () => {
@@ -55,6 +59,11 @@ export default function DeliverySheet() {
 
   useEffect(() => { fetchSheet(); }, [riderFilter]);
 
+  const clearStatusAfterDelay = (ms = 4000) => {
+    const id = setTimeout(() => setPhysicalScanStatus(''), ms);
+    statusClearTimers.current.push(id);
+  };
+
   const lookupTracking = async (tn) => {
     if (!tn.trim()) return;
     setLookupLoading(true);
@@ -68,11 +77,11 @@ export default function DeliverySheet() {
         setLookupParcel(data);
       } else {
         setPhysicalScanStatus(`✗ ${tn} — Parcel not found`);
-        setTimeout(() => setPhysicalScanStatus(''), 4000);
+        clearStatusAfterDelay();
       }
     } catch {
       setPhysicalScanStatus(`✗ ${tn} — Network error`);
-      setTimeout(() => setPhysicalScanStatus(''), 4000);
+      clearStatusAfterDelay();
     } finally { setLookupLoading(false); }
   };
 
@@ -99,13 +108,13 @@ export default function DeliverySheet() {
         setPhysicalScanValue('');
         fetchSheet();
       } else {
-        const d = await res.json();
-        setPhysicalScanStatus(`✗ ${tn} — ${d.error}`);
+        const d = await res.json().catch(() => ({}));
+        setPhysicalScanStatus(`✗ ${tn} — ${d.error || 'Scan failed'}`);
       }
     } catch {
       setPhysicalScanStatus(`✗ ${tn} — Network error`);
     }
-    setTimeout(() => setPhysicalScanStatus(''), 4000);
+    clearStatusAfterDelay();
   };
 
   const handlePhysicalScanInput = (e) => {

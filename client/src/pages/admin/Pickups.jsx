@@ -183,28 +183,37 @@ export default function Pickups() {
 
   const handleAssign = async (e) => {
     e.preventDefault();
-    await fetch(`${API}/pickups/${assignForm.id}/assign`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-      body: JSON.stringify({ driver_id: assignForm.driver_id ? parseInt(assignForm.driver_id) : null, scheduled_at: assignForm.scheduled_at || null })
-    });
-    setAssignForm({ id: null, driver_id: '', scheduled_at: '' });
-    fetchPickups();
+    try {
+      const res = await fetch(`${API}/pickups/${assignForm.id}/assign`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ driver_id: assignForm.driver_id ? parseInt(assignForm.driver_id) : null, scheduled_at: assignForm.scheduled_at || null })
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Assign failed'); }
+      setAssignForm({ id: null, driver_id: '', scheduled_at: '' });
+      fetchPickups();
+    } catch (err) { alert('Network error'); }
   };
 
   const handleStatus = async (id, status) => {
-    await fetch(`${API}/shipments/${id}/status`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-      body: JSON.stringify({ status })
-    });
-    fetchPickups();
+    try {
+      const res = await fetch(`${API}/shipments/${id}/status`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Status update failed'); }
+      fetchPickups();
+    } catch (err) { alert('Network error'); }
   };
 
   const handleDelete = async (id, tracking) => {
     if (!confirm(`Delete pickup ${tracking}? This cannot be undone.`)) return;
-    await fetch(`${API}/shipments/${id}`, {
-      method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` }
-    });
-    fetchPickups();
+    try {
+      const res = await fetch(`${API}/shipments/${id}`, {
+        method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Delete failed'); return; }
+      fetchPickups();
+    } catch (err) { alert('Network error'); }
   };
 
   return (

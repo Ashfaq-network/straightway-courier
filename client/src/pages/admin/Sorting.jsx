@@ -31,12 +31,15 @@ export default function Sorting() {
 
   const handleAssign = async (e) => {
     e.preventDefault();
-    await fetch(`${API}/sorting/${assignForm.id}/assign`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-      body: JSON.stringify({ rider_id: assignForm.rider_id ? parseInt(assignForm.rider_id) : null, sorting_area: assignForm.sorting_area })
-    });
-    setAssignForm({ id: null, rider_id: '', sorting_area: '' });
-    fetchItems();
+    try {
+      const res = await fetch(`${API}/sorting/${assignForm.id}/assign`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ rider_id: assignForm.rider_id ? parseInt(assignForm.rider_id) : null, sorting_area: assignForm.sorting_area })
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Assign failed'); }
+      setAssignForm({ id: null, rider_id: '', sorting_area: '' });
+      fetchItems();
+    } catch (err) { alert('Network error'); }
   };
 
   return (

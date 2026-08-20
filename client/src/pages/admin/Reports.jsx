@@ -44,23 +44,25 @@ export default function Reports() {
   };
 
   const handleExport = async () => {
-    const params = new URLSearchParams();
-    if (exportStart) params.append('startDate', exportStart);
-    if (exportEnd) params.append('endDate', exportEnd);
-    const res = await fetch(`${API}/reports/export?${params}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-    if (!res.ok) return;
-    const data = await res.json();
-    setExportData(data);
+    try {
+      const params = new URLSearchParams();
+      if (exportStart) params.append('startDate', exportStart);
+      if (exportEnd) params.append('endDate', exportEnd);
+      const res = await fetch(`${API}/reports/export?${params}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (!res.ok) { alert('Export failed'); return; }
+      const data = await res.json();
+      setExportData(data);
 
-    const headers = ['Docket #','Client','Sender','Receiver','Origin','Destination','Weight','Charge','COD','Status','Created'];
-    const rows = data.map(s => [s.sw_tracking_number || s.tracking_number, s.client_name || '', s.sender_name, s.receiver_name, s.origin, s.destination, s.weight || '', s.delivery_charge || 0, s.cod_amount || 0, s.status, new Date(s.created_at).toLocaleDateString()]);
-    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `shipments_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+      const headers = ['Docket #','Client','Sender','Receiver','Origin','Destination','Weight','Charge','COD','Status','Created'];
+      const rows = data.map(s => [s.sw_tracking_number || s.tracking_number, s.client_name || '', s.sender_name, s.receiver_name, s.origin, s.destination, s.weight || '', s.delivery_charge || 0, s.cod_amount || 0, s.status, new Date(s.created_at).toLocaleDateString()]);
+      const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `shipments_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) { alert('Export failed: ' + err.message); }
   };
 
   const tabs = [

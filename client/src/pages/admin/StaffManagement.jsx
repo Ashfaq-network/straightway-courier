@@ -22,29 +22,35 @@ export default function StaffManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const url = editStaff ? `${API}/staff/${editStaff.id}` : `${API}/staff`;
-    const method = editStaff ? 'PUT' : 'POST';
-    const body = editStaff ? { name: form.name, phone: form.phone, email: form.email, username: form.username, role: form.role } : form;
+    try {
+      const url = editStaff ? `${API}/staff/${editStaff.id}` : `${API}/staff`;
+      const method = editStaff ? 'PUT' : 'POST';
+      const body = editStaff ? { name: form.name, phone: form.phone, email: form.email, username: form.username, role: form.role } : form;
 
-    await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-      body: JSON.stringify(body)
-    });
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Save failed'); return; }
 
-    setShowForm(false);
-    setEditStaff(null);
-    setForm({ name: '', phone: '', email: '', username: '', password: '', role: 'delivery_rider' });
-    fetchStaff();
+      setShowForm(false);
+      setEditStaff(null);
+      setForm({ name: '', phone: '', email: '', username: '', password: '', role: 'delivery_rider' });
+      fetchStaff();
+    } catch (err) { alert('Network error'); }
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this staff member?')) return;
-    await fetch(`${API}/staff/${id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${getToken()}` }
-    });
-    fetchStaff();
+    try {
+      const res = await fetch(`${API}/staff/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      if (!res.ok) alert('Delete failed');
+      fetchStaff();
+    } catch (err) { alert('Network error'); }
   };
 
   const handleEdit = (s) => {

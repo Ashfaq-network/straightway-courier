@@ -28,7 +28,7 @@ export default function Tracking() {
     try {
       const res = await fetch(`${API}/${encodeURIComponent(tn.trim())}`);
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         throw new Error(data.error || 'Tracking number not found');
       }
       const data = await res.json();

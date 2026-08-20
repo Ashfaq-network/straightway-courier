@@ -26,21 +26,26 @@ export default function Clients() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const url = editClient ? `${API}/clients/${editClient.id}` : `${API}/clients`;
-    const method = editClient ? 'PUT' : 'POST';
-    await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }, body: JSON.stringify(form) });
-    setShowForm(false); setEditClient(null); resetForm(); fetchClients();
+    try {
+      const url = editClient ? `${API}/clients/${editClient.id}` : `${API}/clients`;
+      const method = editClient ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }, body: JSON.stringify(form) });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Save failed'); return; }
+      setShowForm(false); setEditClient(null); resetForm(); fetchClients();
+    } catch (err) { alert('Network error'); }
   };
 
   const createLogin = async (clientId) => {
     if (!loginForm.username || !loginForm.password) { alert('Username and password required'); return; }
-    const res = await fetch(`${API}/clients/${clientId}/create-login`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }, body: JSON.stringify(loginForm)
-    });
-    if (!res.ok) { const d = await res.json(); alert(d.error); return; }
-    alert('Login created successfully!');
-    setShowLogin(null);
-    setLoginForm({ username: '', password: '' });
+    try {
+      const res = await fetch(`${API}/clients/${clientId}/create-login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }, body: JSON.stringify(loginForm)
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Failed to create login'); return; }
+      alert('Login created successfully!');
+      setShowLogin(null);
+      setLoginForm({ username: '', password: '' });
+    } catch (err) { alert('Network error'); }
   };
 
   const resetForm = () => setForm({ client_type: 'individual', company_name: '', contact_person: '', phone: '', email: '', address: '', billing_address: '' });
@@ -147,7 +152,7 @@ export default function Clients() {
                   <td className="px-4 py-3 text-right">
                     <button onClick={() => { setShowLogin(c.id); }} className="text-purple-500 hover:underline text-xs mr-2">Login</button>
                     <button onClick={() => { setEditClient(c); setForm({ client_type: c.client_type, company_name: c.company_name || '', contact_person: c.contact_person, phone: c.phone, email: c.email || '', address: c.address || '', billing_address: c.billing_address || '' }); setShowForm(true); }} className="text-blue-500 hover:underline text-xs mr-2">Edit</button>
-                    <button onClick={async () => { if (!confirm('Delete?')) return; await fetch(`${API}/clients/${c.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } }); fetchClients(); }} className="text-red-500 hover:underline text-xs">Delete</button>
+                    <button onClick={async () => { if (!confirm('Delete?')) return; try { const res = await fetch(`${API}/clients/${c.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } }); if (res.ok) fetchClients(); else alert('Delete failed'); } catch { alert('Network error'); } }} className="text-red-500 hover:underline text-xs">Delete</button>
                   </td>
                 </tr>
               ))}

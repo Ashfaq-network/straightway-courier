@@ -71,7 +71,7 @@ export default function ClientDashboard() {
   useEffect(() => {
     const user = sessionStorage.getItem('client_user');
     if (!user) { navigate('/client'); return; }
-    setProfile(JSON.parse(user));
+    try { setProfile(JSON.parse(user)); } catch { navigate('/client'); return; }
     fetchShipments();
     fetchInvoices();
     fetchProfile();
@@ -126,7 +126,7 @@ export default function ClientDashboard() {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
         body: JSON.stringify(form)
       });
-      if (!res.ok) { const d = await res.json(); alert(d.error); return; }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Request failed'); return; }
       setSubmitted(true);
       setForm({ sender_name: '', sender_phone: '', sender_address: '', receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: '', parcel_description: '', weight: '', delivery_type: '', cod_amount: '' });
       fetchShipments();
@@ -141,7 +141,7 @@ export default function ClientDashboard() {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
         body: JSON.stringify(docketForm)
       });
-      if (!res.ok) { const d = await res.json(); alert(d.error); return; }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Request failed'); return; }
       setSubmitted(true);
       setDocketForm({ receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: '', weight: '', cod_amount: '', sw_tracking_number: '', num_items: '1' });
       fetchShipments();

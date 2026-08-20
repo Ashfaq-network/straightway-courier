@@ -19,8 +19,10 @@ export default function Messages() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this message?')) return;
-    await fetch(`${API}/messages/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
-    fetchMessages();
+    try {
+      const res = await fetch(`${API}/messages/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (res.ok) fetchMessages(); else alert('Delete failed');
+    } catch (err) { alert('Network error'); }
   };
 
   return (

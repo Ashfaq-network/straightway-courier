@@ -134,15 +134,18 @@ export default function AdminDashboard() {
     } catch (err) { console.error(err); }
   };
 
-  const fetchShipments = async (statusOverride) => {
+  const fetchShipments = async (overrides) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.append('search', search);
-      const sf = statusOverride !== undefined ? statusOverride : statusFilter;
+      const sf = overrides?.statusFilter !== undefined ? overrides.statusFilter : statusFilter;
+      const ss = overrides?.search !== undefined ? overrides.search : search;
+      const sFrom = overrides?.dateFrom !== undefined ? overrides.dateFrom : dateFrom;
+      const sTo = overrides?.dateTo !== undefined ? overrides.dateTo : dateTo;
+      if (ss) params.append('search', ss);
       if (sf) params.append('status', sf);
-      if (dateFrom) params.append('startDate', dateFrom);
-      if (dateTo) params.append('endDate', dateTo);
+      if (sFrom) params.append('startDate', sFrom);
+      if (sTo) params.append('endDate', sTo);
       const res = await fetch(`${API}/shipments?${params}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
       if (res.ok) setShipments(await res.json());
       else if (res.status === 401) { sessionStorage.removeItem('swc_token'); navigate('/admin'); }
@@ -151,9 +154,12 @@ export default function AdminDashboard() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this shipment?')) return;
-    await fetch(`${API}/shipments/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
-    fetchShipments();
-    fetchStats();
+    try {
+      const res = await fetch(`${API}/shipments/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Delete failed'); return; }
+      fetchShipments();
+      fetchStats();
+    } catch (err) { alert('Network error'); }
   };
 
   const viewTracking = async (id) => {
@@ -369,7 +375,7 @@ export default function AdminDashboard() {
                         onChange={(e) => setSearch(e.target.value)}
                         className="pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 w-48 transition-all" />
                     </div>
-                    <select value={statusFilter} onChange={(e) => { const v = e.target.value; setStatusFilter(v); setTimeout(() => fetchShipments(v), 50); }}
+                    <select value={statusFilter} onChange={(e) => { const v = e.target.value; setStatusFilter(v); fetchShipments({ statusFilter: v }); }}
                       className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all">
                       <option value="">All Status</option>
                       {['pending_scan','pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery','customer_contacted','delivered','failed_delivery','returned_to_sender','rescheduled'].map(st => (
@@ -379,7 +385,7 @@ export default function AdminDashboard() {
                     <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" title="From" />
                     <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" title="To" />
                     <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">Filter</button>
-                    <button type="button" onClick={() => { setSearch(''); setStatusFilter(''); setDateFrom(''); setDateTo(''); fetchShipments(); }}
+                    <button type="button" onClick={() => { setSearch(''); setStatusFilter(''); setDateFrom(''); setDateTo(''); fetchShipments({ search: '', statusFilter: '', dateFrom: '', dateTo: '' }); }}
                       className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">Clear</button>
                   </form>
                 </div>
