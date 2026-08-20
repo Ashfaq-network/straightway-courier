@@ -56,6 +56,7 @@ export default function ClientDashboard() {
   const [trackingDetail, setTrackingDetail] = useState(null);
   const [loadingTracking, setLoadingTracking] = useState(false);
   const [trackSearch, setTrackSearch] = useState('');
+  const [trackError, setTrackError] = useState('');
   const [form, setForm] = useState({ sender_name: '', sender_phone: '', sender_address: '', receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: '', parcel_description: '', weight: '', delivery_type: '', cod_amount: '' });
   const [docketForm, setDocketForm] = useState({ receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: '', weight: '', cod_amount: '', sw_tracking_number: '', num_items: '1' });
   const [pickupType, setPickupType] = useState('pickup');
@@ -67,6 +68,16 @@ export default function ClientDashboard() {
   const navigate = useNavigate();
 
   const getToken = () => sessionStorage.getItem('client_token');
+
+  const handleAuthError = (res) => {
+    if (res.status === 401 || res.status === 403) {
+      sessionStorage.removeItem('client_token');
+      sessionStorage.removeItem('client_user');
+      navigate('/client');
+      return true;
+    }
+    return false;
+  };
 
   useEffect(() => {
     const user = sessionStorage.getItem('client_user');
@@ -80,6 +91,7 @@ export default function ClientDashboard() {
   const fetchProfile = async () => {
     try {
       const res = await fetch(`${API}/profile`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (handleAuthError(res)) return;
       if (res.ok) {
         const data = await res.json();
         setProfileForm({ company_name: data.company_name || '', contact_person: data.contact_person || '', phone: data.phone || '', email: data.email || '', address: data.address || '' });
@@ -90,6 +102,7 @@ export default function ClientDashboard() {
   const fetchShipments = async () => {
     try {
       const res = await fetch(`${API}/shipments`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (handleAuthError(res)) return;
       if (res.ok) setShipments(await res.json());
     } catch (err) { console.error(err); }
   };
@@ -97,6 +110,7 @@ export default function ClientDashboard() {
   const fetchInvoices = async () => {
     try {
       const res = await fetch(`${API}/reports/invoices`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (handleAuthError(res)) return;
       if (res.ok) setInvoices(await res.json());
     } catch (err) { console.error(err); }
   };
@@ -104,15 +118,22 @@ export default function ClientDashboard() {
   const viewTracking = async (trackingNumber) => {
     setLoadingTracking(true);
     setTrackingDetail(null);
+    setTrackError('');
     try {
       const res = await fetch(`${API}/shipments/${trackingNumber}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-      if (res.ok) setTrackingDetail(await res.json());
-    } catch (err) { console.error(err); } finally { setLoadingTracking(false); }
+      if (handleAuthError(res)) return;
+      if (res.ok) {
+        setTrackingDetail(await res.json());
+      } else {
+        setTrackError('Tracking number not found');
+      }
+    } catch (err) { setTrackError('Network error — please try again'); } finally { setLoadingTracking(false); }
   };
 
   const handleTrackSearch = (e) => {
     e.preventDefault();
     if (trackSearch.trim()) {
+      setTrackError('');
       viewTracking(trackSearch.trim());
       setTrackSearch('');
     }
@@ -126,6 +147,7 @@ export default function ClientDashboard() {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
         body: JSON.stringify(form)
       });
+      if (handleAuthError(res)) return;
       if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Request failed'); return; }
       setSubmitted(true);
       setForm({ sender_name: '', sender_phone: '', sender_address: '', receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: '', parcel_description: '', weight: '', delivery_type: '', cod_amount: '' });
@@ -141,6 +163,7 @@ export default function ClientDashboard() {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
         body: JSON.stringify(docketForm)
       });
+      if (handleAuthError(res)) return;
       if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Request failed'); return; }
       setSubmitted(true);
       setDocketForm({ receiver_name: '', receiver_phone: '', receiver_address: '', parcel_type: '', weight: '', cod_amount: '', sw_tracking_number: '', num_items: '1' });
@@ -157,13 +180,17 @@ export default function ClientDashboard() {
         method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
         body: JSON.stringify(profileForm)
       });
+      if (handleAuthError(res)) return;
       if (res.ok) {
         const updated = await res.json();
         setProfile(updated);
         sessionStorage.setItem('client_user', JSON.stringify(updated));
         setProfileMsg('Profile updated');
       }
-      else { setProfileMsg('Failed to update'); }
+      else {
+        const d = await res.json().catch(() => ({}));
+        setProfileMsg(d.error || 'Failed to update profile');
+      }
     } catch (err) { setProfileMsg(err.message); } finally { setProfileSaving(false); }
   };
 
@@ -245,6 +272,12 @@ export default function ClientDashboard() {
                 <Icon name="search" className="w-4 h-4" /> Track
               </button>
             </form>
+            {trackError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mt-3 flex items-center gap-2">
+                <Icon name="failed" className="w-4 h-4 flex-shrink-0" />
+                <span>{trackError}</span>
+              </div>
+            )}
 
             {/* Stat Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
