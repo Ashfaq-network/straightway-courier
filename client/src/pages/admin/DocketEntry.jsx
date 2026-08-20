@@ -596,7 +596,7 @@ export default function DocketEntry() {
             ) : null;
           })()}
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
             <div>
               <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">Weight (kg)</label>
               <input type="text" inputMode="decimal" placeholder="e.g. 1.5" value={form.weight} onChange={(e) => setForm({...form, weight: e.target.value})}
@@ -611,11 +611,6 @@ export default function DocketEntry() {
               <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">Date &amp; Time</label>
               <input type="datetime-local" value={form.docket_date} onChange={(e) => setForm({...form, docket_date: e.target.value})}
                 className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
-            </div>
-            <div>
-              <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">SW Tracking # *</label>
-              <input type="text" required value={form.sw_tracking_number} onChange={(e) => setForm({...form, sw_tracking_number: e.target.value})}
-                placeholder="e.g. SW0001" className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all" />
             </div>
           </div>
 
