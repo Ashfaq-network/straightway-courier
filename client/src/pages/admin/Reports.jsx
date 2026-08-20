@@ -53,8 +53,8 @@ export default function Reports() {
       const data = await res.json();
       setExportData(data);
 
-      const headers = ['Docket #','Client','Sender','Receiver','Origin','Destination','Weight','Charge','COD','Status','Created'];
-      const rows = data.map(s => [s.sw_tracking_number || s.tracking_number, s.client_name || '', s.sender_name, s.receiver_name, s.origin, s.destination, s.weight || '', s.delivery_charge || 0, s.cod_amount || 0, s.status, new Date(s.created_at).toLocaleDateString()]);
+      const headers = ['Tracking #','SW Docket #','Client','Sender','Receiver','Origin','Destination','Weight','Charge','COD','Status','Created'];
+      const rows = data.map(s => [s.tracking_number, s.sw_tracking_number || '', s.client_name || '', s.sender_name, s.receiver_name, s.origin, s.destination, s.weight || '', s.delivery_charge || 0, s.cod_amount || 0, s.status, new Date(s.created_at).toLocaleDateString()]);
       const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);

@@ -107,7 +107,7 @@ router.get('/shipments', async (req, res) => {
     const params = [];
     let idx = 1;
     if (search) {
-      sql += ` AND (s.tracking_number ILIKE $${idx} OR s.sender_name ILIKE $${idx} OR s.receiver_name ILIKE $${idx} OR s.sender_phone ILIKE $${idx} OR s.receiver_phone ILIKE $${idx} OR s.receiver_address ILIKE $${idx})`;
+      sql += ` AND (s.tracking_number ILIKE $${idx} OR s.sw_tracking_number ILIKE $${idx} OR s.sender_name ILIKE $${idx} OR s.receiver_name ILIKE $${idx} OR s.sender_phone ILIKE $${idx} OR s.receiver_phone ILIKE $${idx} OR s.receiver_address ILIKE $${idx})`;
       params.push(`%${search}%`);
       idx++;
     }
@@ -158,7 +158,7 @@ router.get('/shipments/:id/events', async (req, res) => {
 
 router.get('/shipments/tracking/:tracking_number/events', async (req, res) => {
   try {
-    const shipment = await query('SELECT id FROM shipments WHERE tracking_number = $1', [req.params.tracking_number]);
+    const shipment = await query('SELECT id FROM shipments WHERE tracking_number = $1 OR sw_tracking_number = $1', [req.params.tracking_number]);
     if (!shipment.rows[0]) return res.status(404).json({ error: 'Shipment not found' });
     const events = await query('SELECT * FROM tracking_events WHERE shipment_id = $1 ORDER BY timestamp ASC', [shipment.rows[0].id]);
     const attempts = await query('SELECT * FROM delivery_attempts WHERE shipment_id = $1 ORDER BY attempt_number ASC', [shipment.rows[0].id]);
