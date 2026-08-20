@@ -53,6 +53,8 @@ export default function DocketEntry() {
   const [selectedPickupId, setSelectedPickupId] = useState(null);
   const [assignForm, setAssignForm] = useState({ id: null, rider_id: '', sorting_area: '' });
   const [postalSuggestions, setPostalSuggestions] = useState([]);
+  const [pcLookup, setPcLookup] = useState('');
+  const [pcLookupStatus, setPcLookupStatus] = useState('');
   const submittingRef = useRef(false);
 
   const getToken = () => sessionStorage.getItem('swc_token');
@@ -110,12 +112,9 @@ export default function DocketEntry() {
     setEditingId(null);
     setPickups([]);
     setSelectedPickupId(null);
-    let tn = '';
-    try {
-      const r = await fetch(`${API}/generate-pc-tracking`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-      if (r.ok) tn = (await r.json()).tracking_number;
-    } catch {}
-    setForm({ ...defaultForm, tracking_number: tn, docket_date: localDT() });
+    setPcLookup('');
+    setPcLookupStatus('');
+    setForm({ ...defaultForm, tracking_number: '', docket_date: localDT() });
     setShowForm(true);
   };
 
@@ -462,6 +461,44 @@ export default function DocketEntry() {
     });
   };
 
+  const lookupPickupByPC = async (pcNumber) => {
+    if (!pcNumber || !pcNumber.trim()) return;
+    setPcLookupStatus('Looking up...');
+    try {
+      const res = await fetch(`${API}/tracking/${encodeURIComponent(pcNumber.trim())}`, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const s = data.shipment || data;
+        setSelectedPickupId(s.id);
+        setForm(f => ({
+          ...f,
+          tracking_number: s.tracking_number || pcNumber.trim(),
+          client_id: s.client_id || f.client_id || '',
+          sender_name: s.sender_name || '',
+          sender_phone: s.sender_phone || '',
+          sender_address: s.sender_address || '',
+          receiver_name: s.receiver_name || '',
+          receiver_phone: s.receiver_phone || '',
+          receiver_address: s.receiver_address || '',
+          destination: s.destination || '',
+          num_items: s.num_items || '1',
+          weight: s.weight || '',
+          cod_amount: s.cod_amount || '',
+          special_instructions: s.special_instructions || '',
+        }));
+        setPcLookupStatus(`✓ Found: ${s.sender_name || 'Pickup'} → ${s.receiver_name || 'N/A'}`);
+      } else {
+        setPcLookupStatus('✗ Pickup not found');
+        setSelectedPickupId(null);
+      }
+    } catch {
+      setPcLookupStatus('✗ Network error');
+    }
+    setTimeout(() => setPcLookupStatus(''), 4000);
+  };
+
   const statusBadge = (status) => {
     const colors = {
       pending_scan: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
@@ -497,7 +534,27 @@ export default function DocketEntry() {
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
           <h3 className="font-bold text-gray-900 text-base mb-1">{editingId ? 'Edit Docket Entry' : 'New Docket Entry'}</h3>
           {!editingId && (
-            <p className="mb-5 text-[13px] text-gray-400">Docket # <span className="font-bold text-amber-600">{form.tracking_number}</span></p>
+            <div className="mb-5">
+              <label className="block text-[13px] font-semibold text-gray-600 mb-1.5">PC Tracking # (Pickup)</label>
+              <div className="flex gap-2">
+                <input type="text" value={pcLookup} onChange={(e) => setPcLookup(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); lookupPickupByPC(pcLookup); }}}
+                  placeholder="Type PC number (e.g. PC001) and press Enter..."
+                  className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-all font-mono" />
+                <button type="button" onClick={() => lookupPickupByPC(pcLookup)}
+                  className="px-4 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors">
+                  Lookup
+                </button>
+              </div>
+              {pcLookupStatus && (
+                <p className={`mt-1.5 text-[12px] font-medium ${pcLookupStatus.startsWith('✓') ? 'text-green-600' : pcLookupStatus.startsWith('✗') ? 'text-red-500' : 'text-gray-400'}`}>
+                  {pcLookupStatus}
+                </p>
+              )}
+              {form.tracking_number && !pcLookup && (
+                <p className="mt-1.5 text-[13px] text-gray-400">Docket # <span className="font-bold text-amber-600">{form.tracking_number}</span></p>
+              )}
+            </div>
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
