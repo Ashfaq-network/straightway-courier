@@ -105,10 +105,10 @@ export async function initDB() {
       status TEXT NOT NULL DEFAULT 'pickup_requested',
       estimated_delivery TEXT,
       notes TEXT,
-      assigned_pickup_staff_id INTEGER REFERENCES delivery_staff(id),
-      assigned_delivery_staff_id INTEGER REFERENCES delivery_staff(id),
-      pickup_driver_id INTEGER REFERENCES delivery_staff(id),
-      delivery_rider_id INTEGER REFERENCES delivery_staff(id),
+      assigned_pickup_staff_id INTEGER REFERENCES delivery_staff(id) ON DELETE SET NULL,
+      assigned_delivery_staff_id INTEGER REFERENCES delivery_staff(id) ON DELETE SET NULL,
+      pickup_driver_id INTEGER REFERENCES delivery_staff(id) ON DELETE SET NULL,
+      delivery_rider_id INTEGER REFERENCES delivery_staff(id) ON DELETE SET NULL,
       sorting_area TEXT,
       receiver_signature TEXT,
       delivery_photo TEXT,
@@ -152,7 +152,6 @@ export async function initDB() {
   await addCol('shipments', 'pickup_completed_at', 'TIMESTAMP');
   await addCol('shipments', 'sw_tracking_number', 'TEXT');
   await addCol('shipments', 'pickup_id', 'INTEGER REFERENCES shipments(id)');
-  await pool.query('ALTER TABLE shipments DROP CONSTRAINT IF EXISTS shipments_tracking_number_key');
   await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS shipments_sw_tracking_number_uniq ON shipments (sw_tracking_number) WHERE sw_tracking_number IS NOT NULL").catch(() => {});
 
   await addCol('clients', 'nic_number', 'TEXT');
@@ -195,7 +194,7 @@ export async function initDB() {
     CREATE TABLE IF NOT EXISTS cod_settlements (
       id SERIAL PRIMARY KEY,
       shipment_id INTEGER NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-      rider_id INTEGER REFERENCES delivery_staff(id),
+      rider_id INTEGER REFERENCES delivery_staff(id) ON DELETE SET NULL,
       cod_amount DECIMAL(10,2) NOT NULL,
       collected_amount DECIMAL(10,2) DEFAULT 0,
       settled_amount DECIMAL(10,2) DEFAULT 0,
@@ -238,6 +237,29 @@ export async function initDB() {
       value TEXT
     );
   `);
+
+  // ─── Migrations: Fix FK constraints (safe to re-run) ─────────────
+  // Staff FKs: drop + recreate with ON DELETE SET NULL
+  const staffFks = [
+    'shipments_assigned_pickup_staff_id_fkey',
+    'shipments_assigned_delivery_staff_id_fkey',
+    'shipments_pickup_driver_id_fkey',
+    'shipments_delivery_rider_id_fkey',
+  ];
+  for (const fk of staffFks) {
+    await pool.query(`ALTER TABLE shipments DROP CONSTRAINT IF EXISTS ${fk}`).catch(() => {});
+  }
+  await pool.query(`ALTER TABLE cod_settlements DROP CONSTRAINT IF EXISTS cod_settlements_rider_id_fkey`).catch(() => {});
+
+  await pool.query(`ALTER TABLE shipments ADD CONSTRAINT shipments_assigned_pickup_staff_id_fkey FOREIGN KEY (assigned_pickup_staff_id) REFERENCES delivery_staff(id) ON DELETE SET NULL`).catch(() => {});
+  await pool.query(`ALTER TABLE shipments ADD CONSTRAINT shipments_assigned_delivery_staff_id_fkey FOREIGN KEY (assigned_delivery_staff_id) REFERENCES delivery_staff(id) ON DELETE SET NULL`).catch(() => {});
+  await pool.query(`ALTER TABLE shipments ADD CONSTRAINT shipments_pickup_driver_id_fkey FOREIGN KEY (pickup_driver_id) REFERENCES delivery_staff(id) ON DELETE SET NULL`).catch(() => {});
+  await pool.query(`ALTER TABLE shipments ADD CONSTRAINT shipments_delivery_rider_id_fkey FOREIGN KEY (delivery_rider_id) REFERENCES delivery_staff(id) ON DELETE SET NULL`).catch(() => {});
+  await pool.query(`ALTER TABLE cod_settlements ADD CONSTRAINT cod_settlements_rider_id_fkey FOREIGN KEY (rider_id) REFERENCES delivery_staff(id) ON DELETE SET NULL`).catch(() => {});
+
+  // pickup_id self-ref FK: drop + recreate with ON DELETE SET NULL
+  await pool.query(`ALTER TABLE shipments DROP CONSTRAINT IF EXISTS shipments_pickup_id_fkey`).catch(() => {});
+  await pool.query(`ALTER TABLE shipments ADD CONSTRAINT shipments_pickup_id_fkey FOREIGN KEY (pickup_id) REFERENCES shipments(id) ON DELETE SET NULL`).catch(() => {});
 }
 
 export default pool;
