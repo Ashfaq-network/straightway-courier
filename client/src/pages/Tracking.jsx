@@ -129,7 +129,7 @@ export default function Tracking() {
                   </div>
                   <span className={`mt-3 md:mt-0 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold border ${statusColors[s.status] || 'bg-gray-50 text-gray-700 border-gray-200'}`}>
                     <span className={`w-2 h-2 rounded-full ${statusDots[s.status] || 'bg-gray-500'}`} />
-                    {s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                    {(s.status || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                   </span>
                 </div>
 

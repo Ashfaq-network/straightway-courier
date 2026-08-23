@@ -8,7 +8,7 @@ const statusLabels = {
   sorted: 'Sorted', out_for_delivery: 'Out for Delivery', customer_contacted: 'Customer Contacted',
   delivered: 'Delivered', failed_delivery: 'Failed Delivery', returned_to_sender: 'Returned to Sender', rescheduled: 'Rescheduled',
 };
-const statusOrder = ['pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery','delivered'];
+const statusOrder = ['pickup_requested','picked_up','at_sorting_center','sorted','out_for_delivery','delivered','failed_delivery','returned_to_sender'];
 
 const statusColors = {
   pending_scan: 'bg-gray-100 text-gray-800',

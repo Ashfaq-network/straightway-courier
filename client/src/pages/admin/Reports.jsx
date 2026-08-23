@@ -2,14 +2,23 @@ import { useState, useEffect } from 'react';
 
 const API = '/api/admin';
 
+const localDateStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+const localMonthStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+};
+
 export default function Reports() {
   const [daily, setDaily] = useState(null);
   const [monthly, setMonthly] = useState([]);
   const [riderPerf, setRiderPerf] = useState([]);
   const [exportData, setExportData] = useState([]);
   const [tab, setTab] = useState('daily');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [monthStr, setMonthStr] = useState(new Date().toISOString().slice(0, 7));
+  const [date, setDate] = useState(localDateStr());
+  const [monthStr, setMonthStr] = useState(localMonthStr());
   const [exportStart, setExportStart] = useState('');
   const [exportEnd, setExportEnd] = useState('');
 

@@ -32,7 +32,7 @@ export default function DeliverySheet() {
 
   const getToken = () => sessionStorage.getItem('swc_token');
 
-  useEffect(() => { fetchRiders(); fetchSheet(); }, []);
+  useEffect(() => { fetchRiders(); }, []);
 
   useEffect(() => {
     return () => {
@@ -161,6 +161,7 @@ export default function DeliverySheet() {
         })
       });
       if (res.ok) { setEditItem(null); fetchSheet(); }
+      else { const d = await res.json().catch(() => ({})); alert(d.error || 'Update failed'); }
     } catch (err) { alert(err.message); }
   };
 
@@ -172,6 +173,7 @@ export default function DeliverySheet() {
         body: JSON.stringify({ rider_id: newRiderId || null })
       });
       if (res.ok) fetchSheet();
+      else { const d = await res.json().catch(() => ({})); alert(d.error || 'Assign failed'); }
     } catch (err) { console.error(err); }
   };
 
@@ -451,16 +453,18 @@ export default function DeliverySheet() {
                                     </select>
                                   )}
                                   <button onClick={() => handleEdit(s)} className="text-blue-500 hover:text-blue-700 text-xs font-medium transition-colors">Edit</button>
-                                  {s.status !== 'delivered' && (
-                                    <button onClick={async () => {
-                                      if (!confirm(`Mark ${s.tracking_number} as delivered?`)) return;
-                                      const res = await fetch(`${API}/deliveries/${s.id}/complete`, {
-                                        method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-                                        body: JSON.stringify({ receiver_name: s.receiver_name, remarks: 'Marked delivered manually', rider_id: s.delivery_rider_id || riderFilter || null })
-                                      });
-                                      if (res.ok) fetchSheet(); else alert('Failed to mark delivered');
-                                    }} className="text-green-600 hover:text-green-700 text-xs font-medium transition-colors">Deliver</button>
-                                  )}
+                                   {s.status !== 'delivered' && (
+                                     <button onClick={async () => {
+                                       if (!confirm(`Mark ${s.tracking_number} as delivered?`)) return;
+                                       try {
+                                         const res = await fetch(`${API}/deliveries/${s.id}/complete`, {
+                                           method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                                           body: JSON.stringify({ receiver_name: s.receiver_name, remarks: 'Marked delivered manually', rider_id: s.delivery_rider_id || riderFilter || null })
+                                         });
+                                         if (res.ok) fetchSheet(); else { const d = await res.json().catch(() => ({})); alert(d.error || 'Failed to mark delivered'); }
+                                       } catch (err) { alert('Network error: ' + err.message); }
+                                     }} className="text-green-600 hover:text-green-700 text-xs font-medium transition-colors">Deliver</button>
+                                   )}
                                 </div>
                               </td>
                             </tr>

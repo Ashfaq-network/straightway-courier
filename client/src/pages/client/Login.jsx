@@ -30,7 +30,7 @@ export default function ClientLogin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Login failed'); }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Login failed'); }
       const data = await res.json();
       sessionStorage.setItem('client_token', data.token);
       sessionStorage.setItem('client_user', JSON.stringify(data.user));

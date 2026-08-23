@@ -61,7 +61,7 @@ export default function ShipmentForm({ shipment, onDone, onCancel }) {
   };
 
   const statusOptions = [
-    'pickup_requested', 'picked_up', 'at_sorting_center', 'sorted', 'out_for_delivery',
+    'pending_scan', 'pickup_requested', 'picked_up', 'at_sorting_center', 'sorted', 'out_for_delivery',
     'customer_contacted', 'delivered', 'failed_delivery', 'returned_to_sender', 'rescheduled'
   ];
 

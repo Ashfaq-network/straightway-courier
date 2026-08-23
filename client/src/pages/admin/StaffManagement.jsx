@@ -55,7 +55,7 @@ export default function StaffManagement() {
 
   const handleEdit = (s) => {
     setEditStaff(s);
-    setForm({ name: s.name, phone: s.phone, email: s.email || '', username: s.username, password: '', role: s.role || 'delivery_rider' });
+    setForm({ name: s.name || '', phone: s.phone || '', email: s.email || '', username: s.username || '', password: '', role: s.role || 'delivery_rider' });
     setShowForm(true);
   };
 

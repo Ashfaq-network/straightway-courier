@@ -266,7 +266,7 @@ export default function StaffDashboard() {
                       <td className="px-3 py-2 text-xs text-amber-600 max-w-[120px]">{s.special_instructions || '-'}</td>
                       <td className="px-3 py-2 text-xs">
                         <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${statusColors[s.status] || 'bg-gray-100 text-gray-800'}`}>
-                          {s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                          {(s.status || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                         </span>
                       </td>
                     </tr>
@@ -299,7 +299,7 @@ export default function StaffDashboard() {
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className="font-bold text-gray-900 text-sm sm:text-base">{s.tracking_number}</span>
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${statusColors[s.status] || 'bg-gray-100 text-gray-800'}`}>
-                      {s.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                      {(s.status || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1.5 text-sm text-gray-600 mt-2">

@@ -174,7 +174,7 @@ export default function DocketEntry() {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
           body: JSON.stringify(body)
         });
-        if (!res.ok) { const d = await res.json(); alert(d.error); setSaving(false); submittingRef.current = false; return; }
+        if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Save failed'); setSaving(false); submittingRef.current = false; return; }
         shipment = await res.json();
       } else if (selectedPickupId) {
         const body = {
@@ -204,7 +204,7 @@ export default function DocketEntry() {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
           body: JSON.stringify(body)
         });
-        if (!res.ok) { const d = await res.json(); alert(d.error); setSaving(false); submittingRef.current = false; return; }
+        if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Save failed'); setSaving(false); submittingRef.current = false; return; }
         shipment = await res.json();
 
         if (form.sorting_area) {
@@ -231,7 +231,7 @@ export default function DocketEntry() {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
           body: JSON.stringify(body)
         });
-        if (!res.ok) { const d = await res.json(); alert(d.error); setSaving(false); submittingRef.current = false; return; }
+        if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Save failed'); setSaving(false); submittingRef.current = false; return; }
         shipment = await res.json();
 
         if (form.sorting_area) {
@@ -333,6 +333,7 @@ export default function DocketEntry() {
 
   const handlePDF = (s) => {
     const w = window.open('', '_blank');
+    if (!w) { alert('Please allow popups for this site'); return; }
     w.document.write(`
       <html><head><title>Docket ${esc(s.tracking_number)}</title>
       <style>

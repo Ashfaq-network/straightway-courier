@@ -127,7 +127,7 @@ export default function Pickups() {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
           body: JSON.stringify(body)
         });
-        if (!res.ok) { const d = await res.json(); alert(d.error); return; }
+        if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Save failed'); return; }
         shipment = await res.json();
 
         if (pickupForm.pickup_driver_id || pickupForm.pickup_scheduled_at) {
@@ -146,7 +146,7 @@ export default function Pickups() {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
           body: JSON.stringify(body)
         });
-        if (!res.ok) { const d = await res.json(); alert(d.error); return; }
+        if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Save failed'); return; }
         shipment = await res.json();
 
         if (pickupForm.pickup_driver_id || pickupForm.pickup_scheduled_at) {

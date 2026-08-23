@@ -42,13 +42,15 @@ export default function Deliveries() {
 
   const handleComplete = async (e) => {
     e.preventDefault();
-    const res = await fetch(`${API}/deliveries/${completeForm.id}/complete`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-      body: JSON.stringify(completeForm)
-    });
-    if (!res.ok) { alert('Failed to complete delivery'); return; }
-    setCompleteForm(null);
-    fetchItems();
+    try {
+      const res = await fetch(`${API}/deliveries/${completeForm.id}/complete`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify(completeForm)
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Failed to complete delivery'); return; }
+      setCompleteForm(null);
+      fetchItems();
+    } catch (err) { alert('Network error: ' + err.message); }
   };
 
   return (

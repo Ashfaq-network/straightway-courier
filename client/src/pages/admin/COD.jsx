@@ -56,7 +56,7 @@ export default function COD() {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
         body: JSON.stringify(settleForm)
       });
-      if (!res.ok) { const d = await res.json(); alert(d.error || 'Failed to settle'); return; }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Failed to settle'); return; }
       setShowSettle(false);
       setSettleForm({ shipment_id: '', rider_id: '', collected_amount: '', notes: '' });
       fetchSettlements();
