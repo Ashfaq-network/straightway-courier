@@ -11,6 +11,8 @@ export default function Clients() {
   const [form, setForm] = useState({ client_type: 'individual', company_name: '', contact_person: '', phone: '', email: '', address: '', billing_address: '' });
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [showLogin, setShowLogin] = useState(null);
+  const [showReset, setShowReset] = useState(null);
+  const [resetPassword, setResetPassword] = useState('');
 
   const getToken = () => sessionStorage.getItem('swc_token');
 
@@ -45,6 +47,20 @@ export default function Clients() {
       alert('Login created successfully!');
       setShowLogin(null);
       setLoginForm({ username: '', password: '' });
+      fetchClients();
+    } catch (err) { alert('Network error'); }
+  };
+
+  const resetLogin = async (clientId) => {
+    if (!resetPassword || resetPassword.length < 4) { alert('Password must be at least 4 characters'); return; }
+    try {
+      const res = await fetch(`${API}/clients/${clientId}/reset-password`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }, body: JSON.stringify({ password: resetPassword })
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Failed to reset password'); return; }
+      alert('Password reset successfully!');
+      setShowReset(null);
+      setResetPassword('');
     } catch (err) { alert('Network error'); }
   };
 
@@ -112,10 +128,26 @@ export default function Clients() {
             <h3 className="font-semibold text-gray-900 mb-4">Create Client Login</h3>
             <div className="space-y-3">
               <input type="text" placeholder="Username" value={loginForm.username} onChange={(e) => setLoginForm({...loginForm, username: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
-              <input type="password" placeholder="Password" value={loginForm.password} onChange={(e) => setLoginForm({...loginForm, password: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+              <input type="password" placeholder="Password (min 4 chars)" value={loginForm.password} onChange={(e) => setLoginForm({...loginForm, password: e.target.value})} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
               <div className="flex gap-2">
                 <button onClick={() => createLogin(showLogin)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Create</button>
-                <button onClick={() => setShowLogin(null)} className="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancel</button>
+                <button onClick={() => { setShowLogin(null); setLoginForm({ username: '', password: '' }); }} className="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReset && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowReset(null)}>
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold text-gray-900 mb-1">Reset Password</h3>
+            <p className="text-xs text-gray-400 mb-4">For: {clients.find(c => c.id === showReset)?.login_username || 'client'}</p>
+            <div className="space-y-3">
+              <input type="password" placeholder="New password (min 4 chars)" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+              <div className="flex gap-2">
+                <button onClick={() => resetLogin(showReset)} className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm">Reset Password</button>
+                <button onClick={() => { setShowReset(null); setResetPassword(''); }} className="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancel</button>
               </div>
             </div>
           </div>
@@ -132,7 +164,7 @@ export default function Clients() {
                 <th className="text-left px-4 py-3 font-medium">Name/Company</th>
                 <th className="text-left px-4 py-3 font-medium">Contact Person</th>
                 <th className="text-left px-4 py-3 font-medium">Phone</th>
-                <th className="text-left px-4 py-3 font-medium">Email</th>
+                <th className="text-left px-4 py-3 font-medium">Login</th>
                 <th className="text-center px-4 py-3 font-medium">Status</th>
                 <th className="text-right px-4 py-3 font-medium">Actions</th>
               </tr>
@@ -143,14 +175,24 @@ export default function Clients() {
                   <td className="px-4 py-3 font-medium text-gray-900">{c.company_name || c.contact_person}</td>
                   <td className="px-4 py-3 text-gray-600">{c.contact_person}</td>
                   <td className="px-4 py-3 text-gray-600">{c.phone}</td>
-                  <td className="px-4 py-3 text-gray-600">{c.email || '-'}</td>
+                  <td className="px-4 py-3">
+                    {c.login_username ? (
+                      <span className="text-sm font-mono text-gray-800 bg-gray-100 px-2 py-0.5 rounded">{c.login_username}</span>
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">No login</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${c.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       {c.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => { setShowLogin(c.id); }} className="text-purple-500 hover:underline text-xs mr-2">Login</button>
+                    {c.login_username ? (
+                      <button onClick={() => { setShowReset(c.id); setResetPassword(''); }} className="text-amber-500 hover:underline text-xs mr-2">Reset PW</button>
+                    ) : (
+                      <button onClick={() => { setShowLogin(c.id); setLoginForm({ username: c.contact_person?.toLowerCase().replace(/\s+/g, '') || '', password: '' }); }} className="text-purple-500 hover:underline text-xs mr-2">Set Login</button>
+                    )}
                     <button onClick={() => { setEditClient(c); setForm({ client_type: c.client_type, company_name: c.company_name || '', contact_person: c.contact_person, phone: c.phone, email: c.email || '', address: c.address || '', billing_address: c.billing_address || '' }); setShowForm(true); }} className="text-blue-500 hover:underline text-xs mr-2">Edit</button>
                     <button onClick={async () => { if (!confirm('Delete?')) return; try { const res = await fetch(`${API}/clients/${c.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } }); if (res.ok) fetchClients(); else alert('Delete failed'); } catch { alert('Network error'); } }} className="text-red-500 hover:underline text-xs">Delete</button>
                   </td>

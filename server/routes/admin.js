@@ -351,13 +351,15 @@ router.post('/shipments/:id/resend-email', async (req, res) => {
 router.get('/clients', async (req, res) => {
   try {
     const { search } = req.query;
-    let sql = 'SELECT * FROM clients WHERE 1=1';
+    let sql = `SELECT c.*, cu.username AS login_username, cu.id AS login_user_id
+      FROM clients c LEFT JOIN client_users cu ON c.id = cu.client_id AND cu.is_active = true
+      WHERE 1=1`;
     const params = [];
     if (search) {
-      sql += ' AND (company_name ILIKE $1 OR contact_person ILIKE $1 OR phone ILIKE $1 OR email ILIKE $1)';
+      sql += ' AND (c.company_name ILIKE $1 OR c.contact_person ILIKE $1 OR c.phone ILIKE $1 OR c.email ILIKE $1 OR cu.username ILIKE $1)';
       params.push(`%${search}%`);
     }
-    sql += ' ORDER BY created_at DESC';
+    sql += ' ORDER BY c.created_at DESC';
     const result = await query(sql, params);
     res.json(result.rows);
   } catch (err) {
@@ -424,6 +426,23 @@ router.post('/clients/:id/create-login', async (req, res) => {
     const result = await query(`INSERT INTO client_users (client_id, username, password_hash) VALUES ($1, $2, $3) RETURNING id, username`,
       [req.params.id, username, password_hash]);
     res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Client Password Reset ────────────────────────────────────────
+router.post('/clients/:id/reset-password', async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
+    const client = await query('SELECT * FROM clients WHERE id = $1', [req.params.id]);
+    if (!client.rows[0]) return res.status(404).json({ error: 'Client not found' });
+    const existing = await query('SELECT id FROM client_users WHERE client_id = $1 AND is_active = true', [req.params.id]);
+    if (!existing.rows[0]) return res.status(400).json({ error: 'No active login found for this client. Create one first.' });
+    const password_hash = await bcrypt.hash(password, 10);
+    await query('UPDATE client_users SET password_hash = $1 WHERE client_id = $2 AND is_active = true', [password_hash, req.params.id]);
+    res.json({ success: true, message: 'Password reset successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
